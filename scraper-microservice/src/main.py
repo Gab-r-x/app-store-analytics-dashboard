@@ -3,8 +3,8 @@ import time
 import logging
 import pandas as pd
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from scraper_categories import get_categories, scrape_top_apps, get_top_lists
-from scraper_app_details import get_app_details
+from scraper.scraper_categories import get_categories, scrape_top_apps, get_top_lists
+from scraper.scraper_app_details import get_app_details
 from config import MAX_THREADS, TIME_BETWEEN_REQUESTS
 
 # Configurar logging
