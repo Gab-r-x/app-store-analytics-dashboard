@@ -116,30 +116,17 @@ def scrape_top_apps(category_name, list_type, list_url):
         developer = app.find("div", class_="we-lockup__subtitle")
         link = app.find("a", class_="we-lockup")
 
-        app_data.append([
-            category_name,
-            list_type,
-            rank.text.strip() if rank else "Unknown Rank",
-            title.text.strip() if title else "Unknown Title",
-            developer.text.strip() if developer else "Unknown Developer",
-            urljoin(BASE_URL, link["href"]) if link else "No URL"
-        ])
+        app_data.append({
+            "category": category_name,
+            "list_type": list_type,
+            "rank": rank.text.strip() if rank else "Unknown Rank",
+            "name": title.text.strip() if title else "Unknown Title",
+            "developer": developer.text.strip() if developer else "Unknown Developer",
+            "url": urljoin(BASE_URL, link["href"]) if link else "No URL"
+        })
 
     logging.info(f"✅ Scraped {len(app_data)} apps from {category_name} - {list_type}.")
     
-    random_delay()  # Avoid rate limiting
+    random_delay()  
 
     return app_data
-
-def process_category(category):
-    """Processes a category by extracting top free & paid apps."""
-    category_name, category_url = category
-    free_apps_url, paid_apps_url = get_top_lists(category_name, category_url)
-    
-    category_apps = []
-    if free_apps_url:
-        category_apps.extend(scrape_top_apps(category_name, "Top Free", free_apps_url))
-    if paid_apps_url:
-        category_apps.extend(scrape_top_apps(category_name, "Top Paid", paid_apps_url))
-
-    return category_apps

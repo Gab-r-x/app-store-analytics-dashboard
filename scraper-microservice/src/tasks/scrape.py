@@ -12,8 +12,12 @@ celery_app = Celery(
     "tasks",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["tasks.scrape", "tasks.save_to_mongo"]
+    include=["tasks.scrape", "tasks.save_to_mongo"],
+    task_serializer="pickle",
+    result_serializer="pickle",
+    accept_content=["pickle", "json"],
 )
+
 
 # Logging configuration
 logging.basicConfig(

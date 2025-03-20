@@ -1,9 +1,11 @@
 import requests
 import time
 import random
+import unicodedata
 from bs4 import BeautifulSoup
 import logging
 from config import settings
+from bson import ObjectId  # Import para tratar ObjectId
 
 USER_AGENTS = settings.USER_AGENTS
 MAX_RETRIES = settings.MAX_RETRIES
@@ -15,6 +17,12 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
+
+def clean_text(text):
+    """Remove caracteres especiais e normaliza encoding."""
+    if text:
+        return unicodedata.normalize("NFKC", text).replace("\xa0", " ").strip()
+    return None
 
 def get_headers():
     """Returns a random User-Agent header to avoid blocking."""
@@ -55,36 +63,35 @@ def get_app_details(app_url):
     response = get_page_with_retry(app_url)
     if not response:
         return None
-    
+
     soup = BeautifulSoup(response.text, 'html.parser')
-    
     details = {}
 
-    # Title
+    # Título
     title = soup.find("h1", class_="product-header__title")
-    details["Title"] = title.text.strip() if title else None
-    
-    # Subtitle
+    details["Title"] = clean_text(title.text) if title else None
+
+    # Subtítulo
     subtitle = soup.find("h2", class_="product-header__subtitle")
-    details["Subtitle"] = subtitle.text.strip() if subtitle else None
-    
-    # Developer
+    details["Subtitle"] = clean_text(subtitle.text) if subtitle else None
+
+    # Desenvolvedor
     developer = soup.find("h2", class_="product-header__identity")
-    details["Developer"] = developer.text.strip() if developer else None
-    
-    # Category Rank
+    details["Developer"] = clean_text(developer.text) if developer else None
+
+    # Rank da categoria
     category_rank = soup.select_one(".product-header__list__item a")
-    details["Category Rank"] = category_rank.text.strip() if category_rank else None
-    
-    # Rating and Review Count
+    details["Category Rank"] = clean_text(category_rank.text) if category_rank else None
+
+    # Avaliação
     rating_info = soup.select_one(".we-rating-count.star-rating__count")
-    details["Rating"] = rating_info.text.strip() if rating_info else None
-    
-    # Price
+    details["Rating"] = clean_text(rating_info.text) if rating_info else None
+
+    # Preço
     price_info = soup.select_one(".inline-list__item--bulleted")
-    details["Price"] = price_info.text.strip() if price_info else None
-    
-    # Screenshots
+    details["Price"] = clean_text(price_info.text) if price_info else None
+
+    # Capturas de tela
     screenshots = []
     for picture in soup.select("picture.we-artwork"):
         sources = picture.find_all("source")
@@ -96,50 +103,51 @@ def get_app_details(app_url):
         if best_quality:
             screenshots.append(best_quality)
     details["Screenshots"] = screenshots    
-    
-    # Description
+
+    # Descrição
     description = soup.select_one(".section__description p")
-    details["Description"] = description.text.strip() if description else None
-    
-    # Latest Version and Release Date
+    details["Description"] = clean_text(description.text) if description else None
+
+    # Última versão
     latest_version = soup.select_one(".whats-new__latest__version")
     latest_version_date = soup.select_one(".whats-new__latest time")
       
-    details["Latest Version"] = latest_version.text.strip() if latest_version else None
-    details["Latest Version Date"] = latest_version_date.text.strip() if latest_version_date else None
-    
-    # Reviews
+    details["Latest Version"] = clean_text(latest_version.text) if latest_version else None
+    details["Latest Version Date"] = clean_text(latest_version_date.text) if latest_version_date else None
+
+    # Avaliações
     reviews = []
     reviews_page_url = app_url + "?see-all=reviews"
     response_reviews = requests.get(reviews_page_url, headers=get_headers())
     if response_reviews.status_code == 200:
         soup_reviews = BeautifulSoup(response_reviews.text, 'html.parser')
         for review in soup_reviews.select(".we-customer-review"):
-            rating = review.select_one(".we-star-rating").get("aria-label") if review.select_one(".we-star-rating") else None
-            author = review.select_one(".we-customer-review__user").text.strip() if review.select_one(".we-customer-review__user") else None
-            date = review.select_one(".we-customer-review__date").text.strip() if review.select_one(".we-customer-review__date") else None
-            title = review.select_one(".we-customer-review__title").text.strip() if review.select_one(".we-customer-review__title") else None
-            body = review.select_one(".we-customer-review__body p").text.strip() if review.select_one(".we-customer-review__body p") else None
-            reviews.append({"rating": rating, "author": author, "date": date, "title": title, "body": body})
+            reviews.append({
+                "rating": clean_text(review.select_one(".we-star-rating").get("aria-label")) if review.select_one(".we-star-rating") else None,
+                "author": clean_text(review.select_one(".we-customer-review__user").text) if review.select_one(".we-customer-review__user") else None,
+                "date": clean_text(review.select_one(".we-customer-review__date").text) if review.select_one(".we-customer-review__date") else None,
+                "title": clean_text(review.select_one(".we-customer-review__title").text) if review.select_one(".we-customer-review__title") else None,
+                "body": clean_text(review.select_one(".we-customer-review__body p").text) if review.select_one(".we-customer-review__body p") else None
+            })
     details["Reviews"] = reviews
-    
-    # Privacy Information
+
+    # Dados de privacidade
     privacy = []
     for item in soup.select(".privacy-type__data-category-heading"):
-        privacy.append(item.text.strip())
+        privacy.append(clean_text(item.text))
     details["Privacy Data"] = privacy
-    
-    # General Information
+
+    # Informações gerais
     general_info = {}
     for info in soup.select(".information-list__item"):
         key = info.find("dt")
         value = info.find("dd")
         if key and value:
-            general_info[key.text.strip()] = value.text.strip()
+            general_info[clean_text(key.text)] = clean_text(value.text)
     details["General Info"] = general_info
-    
+
     logging.info(f"✅ Data collected for app: {details.get('Title', 'Unknown')}")    
-    
+
     random_delay()  # Adds delay to prevent blocking
 
     return details

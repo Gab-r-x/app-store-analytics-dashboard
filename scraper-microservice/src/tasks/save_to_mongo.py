@@ -12,7 +12,7 @@ celery_app = Celery(
 # MongoDB connection
 try:
     client = MongoClient("mongodb://mongo:27017/")
-    db = client["scraper_db"]
+    db = client["scraper_data"]
     logging.info("✅ Successfully connected to MongoDB.")
 except Exception as e:
     logging.error(f"❌ Error connecting to MongoDB: {e}")
@@ -31,11 +31,16 @@ def save_categories_to_mongo(categories):
     """Saves categories to MongoDB."""
     if not categories:
         logging.error("❌ No categories to save. Scraping may have failed.")
-        raise ValueError("No categories extracted.")
-    
+        return
+
     try:
-        db.categories.insert_many([{"name": cat[0], "url": cat[1]} for cat in categories])
-        logging.info(f"✅ {len(categories)} categories saved to MongoDB.")
+        formatted_categories = [{"name": cat[0], "url": cat[1]} for cat in categories if isinstance(cat, tuple) and len(cat) == 2]
+        if not formatted_categories:
+            logging.error("❌ No valid categories found to save.")
+            return
+
+        db.categories.insert_many(formatted_categories)
+        logging.info(f"✅ {len(formatted_categories)} categories saved to MongoDB.")
     except Exception as e:
         logging.error(f"❌ Error saving categories to MongoDB: {e}")
         raise
@@ -46,24 +51,27 @@ def save_apps_to_mongo(apps):
     """Saves apps to MongoDB."""
     if not apps:
         logging.error("❌ No apps to save. Scraping may have failed.")
-        raise ValueError("No apps extracted.")
-    
-    try:
-        db.raw_apps.insert_many(
-            [
-                {
-                    "category": app.get("category"),
-                    "list_type": app.get("list_type"),
-                    "rank": app.get("rank"),
-                    "name": app.get("name"),
-                    "developer": app.get("developer"),
-                    "url": app.get("url"),
-                }
-                for app in apps if isinstance(app, dict)  # Evita erro se algum item for lista
-            ]
-        )
+        return
 
-        logging.info(f"✅ {len(apps)} apps saved to MongoDB.")
+    try:
+        formatted_apps = [
+            {
+                "category": app.get("category"),
+                "list_type": app.get("list_type"),
+                "rank": app.get("rank"),
+                "name": app.get("name"),
+                "developer": app.get("developer"),
+                "url": app.get("url"),
+            }
+            for app in apps if isinstance(app, dict)
+        ]
+
+        if not formatted_apps:
+            logging.error("❌ No valid apps found to save.")
+            return
+
+        db.raw_apps.insert_many(formatted_apps)
+        logging.info(f"✅ {len(formatted_apps)} apps saved to MongoDB.")
     except Exception as e:
         logging.error(f"❌ Error saving apps to MongoDB: {e}")
         raise
@@ -74,11 +82,28 @@ def save_app_details_to_mongo(app_details):
     """Saves app details to MongoDB."""
     if not app_details:
         logging.error("❌ No app details to save. Scraping may have failed.")
-        raise ValueError("No app details extracted.")
-    
+        return
+
     try:
-        db.app_details.insert_many(app_details)
+        if not all(isinstance(detail, dict) for detail in app_details):
+            logging.error("❌ App details contain invalid data structure.")
+            return
+
+        # Remove _id caso já exista no documento antes de salvar
+        for detail in app_details:
+            detail.pop("_id", None)
+
+        # Inserir os documentos no MongoDB
+        result = db.app_details.insert_many(app_details)
+
         logging.info(f"✅ {len(app_details)} app details saved to MongoDB.")
+
+        # Retorna os dados sem ObjectId para evitar erro de serialização
+        return [
+            {**detail, "_id": str(result.inserted_ids[i])}
+            for i, detail in enumerate(app_details)
+        ]
+
     except Exception as e:
         logging.error(f"❌ Error saving app details to MongoDB: {e}")
         raise
