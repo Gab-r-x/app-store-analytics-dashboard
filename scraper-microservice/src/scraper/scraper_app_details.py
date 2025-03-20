@@ -3,7 +3,11 @@ import time
 import random
 from bs4 import BeautifulSoup
 import logging
-from config import USER_AGENTS, MAX_RETRIES, TIME_BETWEEN_REQUESTS
+from config import settings
+
+USER_AGENTS = settings.USER_AGENTS
+MAX_RETRIES = settings.MAX_RETRIES
+TIME_BETWEEN_REQUESTS = settings.TIME_BETWEEN_REQUESTS
 
 # Logging configuration
 logging.basicConfig(

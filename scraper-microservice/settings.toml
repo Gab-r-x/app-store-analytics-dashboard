@@ -16,4 +16,4 @@ MONGO_DB_NAME = "scraper_data"
 
 # Celery Configuration
 CELERY_BROKER_URL = "pyamqp://guest@rabbitmq//"
-CELERY_RESULT_BACKEND = "mongodb://mongo:27017/scraper_results"
+CELERY_RESULT_BACKEND = "db+mongodb://mongo:27017/scraper_results"

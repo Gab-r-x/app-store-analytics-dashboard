@@ -7,10 +7,15 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
 from urllib.parse import urljoin
 import logging
-from config import BASE_URL, USER_AGENTS, TIME_BETWEEN_REQUESTS, MAX_THREADS
+from config import settings
+
+# Load settings from Dynaconf
+BASE_URL = settings.BASE_URL
+USER_AGENTS = settings.USER_AGENTS
+TIME_BETWEEN_REQUESTS = settings.TIME_BETWEEN_REQUESTS
+MAX_THREADS = settings.MAX_THREADS
 
 # Logging configuration
 logging.basicConfig(
@@ -21,12 +26,12 @@ logging.basicConfig(
 
 # Selenium configuration
 chrome_options = Options()
-chrome_options.add_argument("--headless")  # Run in headless mode for efficiency
+chrome_options.add_argument("--headless")  
 chrome_options.add_argument("--no-sandbox")
 chrome_options.add_argument("--disable-dev-shm-usage")
 
-# Start Selenium WebDriver
-service = Service(ChromeDriverManager().install())
+# Use fixed ChromeDriver path (avoid WebDriver Manager)
+service = Service("/usr/bin/chromedriver")  
 driver = webdriver.Chrome(service=service, options=chrome_options)
 
 # Persistent session for requests

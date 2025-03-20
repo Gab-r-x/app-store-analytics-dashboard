@@ -1,0 +1,55 @@
+services:
+  scraper:
+    build:
+      context: ./scraper-microservice
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+      - rabbitmq
+    environment:
+      - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=mongodb://mongo:27017/scraper_results
+    volumes:
+      - ./scraper-microservice/src:/app/src
+    command: ["python", "/app/src/main.py"]
+
+  celery_worker:
+    build:
+      context: ./scraper-microservice
+      dockerfile: Dockerfile
+    depends_on:
+      - scraper
+      - rabbitmq
+    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+    working_dir: /app/src
+    environment:
+      - PYTHONPATH=/app
+
+
+  rabbitmq:
+    image: "rabbitmq:3-management"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  
+  mongo:
+    image: "mongo:latest"
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+      
+  mongo-express:
+    image: mongo-express
+    restart: always
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_SERVER: mongo
+    ports:
+      - "8081:8081"
+
+volumes:
+  mongo_data:
