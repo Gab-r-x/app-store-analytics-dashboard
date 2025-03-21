@@ -77,7 +77,7 @@ def save_apps_to_mongo(apps):
         raise
 
 
-@celery_app.task
+@celery_app.task(ignore_result=True)
 def save_app_details_to_mongo(app_details):
     """Saves app details to MongoDB."""
     if not app_details:
@@ -89,20 +89,14 @@ def save_app_details_to_mongo(app_details):
             logging.error("❌ App details contain invalid data structure.")
             return
 
-        # Remove _id caso já exista no documento antes de salvar
+        # Remove _id to avoid conflicts before inserting
         for detail in app_details:
             detail.pop("_id", None)
 
-        # Inserir os documentos no MongoDB
-        result = db.app_details.insert_many(app_details)
+        # Insert documents into MongoDB
+        db.app_details.insert_many(app_details)
 
         logging.info(f"✅ {len(app_details)} app details saved to MongoDB.")
-
-        # Retorna os dados sem ObjectId para evitar erro de serialização
-        return [
-            {**detail, "_id": str(result.inserted_ids[i])}
-            for i, detail in enumerate(app_details)
-        ]
 
     except Exception as e:
         logging.error(f"❌ Error saving app details to MongoDB: {e}")
