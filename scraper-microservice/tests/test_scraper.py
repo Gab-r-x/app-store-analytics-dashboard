@@ -1,4 +1,4 @@
-from tasks.scrape import scrape_categories, scrape_apps_from_categories, scrape_app_details_parallel
+from ..src.tasks.scrape import scrape_categories, scrape_apps_from_categories, scrape_app_details_parallel
 from celery.result import AsyncResult
 from pymongo import MongoClient
 import time
