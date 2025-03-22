@@ -2,7 +2,7 @@ from database.mongo_connection import get_mongo_client
 from database.postgres_connection import get_postgres_session
 from processor.normalize import normalize_app_data
 from processor.transform import transform_app_data
-from processor.validator import is_valid_app
+from processor.validator import validate_app_data
 from database.models import App
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import insert
@@ -39,7 +39,7 @@ def process_apps():
         for raw_app in batch:
             try:
                 normalized = normalize_app_data(raw_app)
-                if not is_valid_app(normalized):
+                if not validate_app_data(normalized):
                     skipped_count += 1
                     logger.debug("⛔ Skipped invalid app data")
                     continue

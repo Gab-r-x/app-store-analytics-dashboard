@@ -12,8 +12,8 @@ MONGO_COLLECTION_NAME = "raw_apps"
 POSTGRES_URI = "postgresql://postgres:postgres@postgres:5432/analytics_db"
 
 # Celery
-CELERY_BROKER_URL = "redis://redis:6379/0"
-CELERY_RESULT_BACKEND = "redis://redis:6379/1"
+CELERY_BROKER_URL = "pyamqp://guest@rabbitmq//"
+CELERY_RESULT_BACKEND = "db+mongodb://mongo:27017/scraper_results"
 
 # Configurações de transformação
 MAX_RETRIES = 3

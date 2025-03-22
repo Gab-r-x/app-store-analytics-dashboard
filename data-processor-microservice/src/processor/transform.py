@@ -1,7 +1,6 @@
 import re
 import unicodedata
 
-
 def transform_app_data(app_data):
     """Apply transformations to normalized app data."""
     transformed = app_data.copy()
@@ -22,7 +21,6 @@ def transform_app_data(app_data):
         }
 
     return transformed
-
 
 def clean_text(text):
     """Normalize and clean string data."""
