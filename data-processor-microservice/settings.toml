@@ -16,6 +16,6 @@ CELERY_BROKER_URL = "redis://redis:6379/0"
 CELERY_RESULT_BACKEND = "redis://redis:6379/1"
 
 # Configurações de transformação
-CHUNK_SIZE = 100         # Número de registros por processamento
-MAX_RETRIES = 3          # Tentativas em caso de falha
-WORKER_CONCURRENCY = 4   # Número de workers do Celery
+MAX_RETRIES = 3
+WORKER_CONCURRENCY = 4
+BATCH_SIZE = 50

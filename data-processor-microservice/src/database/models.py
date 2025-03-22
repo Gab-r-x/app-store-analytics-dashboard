@@ -1,7 +1,8 @@
-from sqlalchemy import Column, String, Integer, Float, Text, Date, JSON, ARRAY
+from sqlalchemy import Column, String, Integer, Float, Text, Date, JSON, ARRAY, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
+from datetime import datetime
 
 Base = declarative_base()
 
@@ -51,6 +52,10 @@ class App(Base):
     # Privacy & technical info
     privacy_data = Column(ARRAY(String))
     general_info = Column(JSON)
+
+    # App activity tracking
+    last_seen = Column(Date, default=datetime.utcnow)
+    active = Column(Boolean, default=True)
 
     def __repr__(self):
         return f"<App(name={self.name}, developer={self.developer}, rank={self.rank})>"
