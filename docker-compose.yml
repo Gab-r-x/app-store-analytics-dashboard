@@ -20,37 +20,78 @@ services:
     depends_on:
       - scraper
       - rabbitmq
-    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+    command: ["celery", "-A", "tasks", "worker", "--loglevel=info", "-Q", "default,app_details"]
     working_dir: /app/src
     environment:
       - PYTHONPATH=/app
       - C_FORCE_ROOT=1
 
+  data_processor:
+    build:
+      context: ./data-processor-microservice
+      dockerfile: Dockerfile
+    depends_on:
+      - mongo
+      - postgres
+      - rabbitmq
+    environment:
+      - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=mongodb://mongo:27017/scraper_results
+    volumes:
+      - ./data-processor-microservice/src:/app/src
+    command: ["python", "/app/src/main.py"]
+
+  data_processor_worker:
+    build:
+      context: ./data-processor-microservice
+      dockerfile: Dockerfile
+    depends_on:
+      - data_processor
+      - rabbitmq
+    command: ["celery", "-A", "tasks", "worker", "--loglevel=info", "-Q", "data_processor"]
+    working_dir: /app/src
+    environment:
+      - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
+      - CELERY_RESULT_BACKEND=mongodb://mongo:27017/scraper_results
+      - PYTHONPATH=/app
+      - C_FORCE_ROOT=1
 
   rabbitmq:
     image: "rabbitmq:3-management"
     ports:
       - "5672:5672"
       - "15672:15672"
-  
+
   mongo:
     image: "mongo:latest"
     ports:
       - "27017:27017"
     volumes:
       - mongo_data:/data/db
-      
+
   mongo-express:
     image: mongo-express
     restart: always
     depends_on:
       - mongo
     environment:
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: example
       ME_CONFIG_MONGODB_SERVER: mongo
+      ME_CONFIG_BASICAUTH: "false"
+
     ports:
       - "8081:8081"
 
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: analytics_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+
 volumes:
   mongo_data:
+  pg_data:

@@ -10,7 +10,7 @@ def get_postgres_session():
         engine = create_engine(settings.POSTGRES_URI)
         Session = sessionmaker(bind=engine)
         logging.info("✅ Connected to PostgreSQL.")
-        return Session(), engine
+        return engine, Session()
     except Exception as e:
         logging.error(f"❌ Failed to connect to PostgreSQL: {e}")
         raise

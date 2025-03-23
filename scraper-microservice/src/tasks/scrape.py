@@ -1,4 +1,4 @@
-from celery import Celery
+from celery import Celery, current_app
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -18,7 +18,6 @@ celery_app = Celery(
     accept_content=["pickle", "json"],
 )
 
-
 # Logging configuration
 logging.basicConfig(
     filename="logs/scraper_tasks.log",
@@ -27,66 +26,62 @@ logging.basicConfig(
 )
 
 
-@celery_app.task
+@celery_app.task(queue="app_details")
 def scrape_categories():
     """Extracts categories from the App Store."""
     logging.info("🚀 Starting category extraction...")
     categories = get_categories()
-    
+
     if not categories:
         logging.error("❌ No categories found!")
         return []
-    
+
     logging.info(f"✅ {len(categories)} categories found.")
 
     # Save to MongoDB
     save_categories_to_mongo(categories)
 
+    # Dispatch a scrape_category_apps task for each category
+    for category in categories:
+        scrape_category_apps.delay(category)
+
     return categories
 
 
-@celery_app.task
-def scrape_apps_from_categories(categories):
-    """Extracts top apps for each category."""
-    all_apps = []
-    logging.info("🚀 Starting app extraction...")
+@celery_app.task(queue="app_details")
+def scrape_category_apps(category):
+    """Extracts apps for a single category and chains the details scraping."""
+    category_name, category_url = category
+    logging.info(f"📂 Scraping category: {category_name}")
 
-    max_threads = settings.get("MAX_THREADS", 8)  # Default: 8 threads
+    free_apps_url, paid_apps_url = get_top_lists(category_name, category_url)
+    apps = []
 
-    with ThreadPoolExecutor(max_workers=max_threads) as executor:
-        futures = {}
-        for category_name, category_url in categories:
-            free_apps_url, paid_apps_url = get_top_lists(category_name, category_url)
-            if free_apps_url:
-                futures[executor.submit(scrape_top_apps, category_name, "Top Free", free_apps_url)] = category_name
-            if paid_apps_url:
-                futures[executor.submit(scrape_top_apps, category_name, "Top Paid", paid_apps_url)] = category_name
+    if free_apps_url:
+        apps += scrape_top_apps(category_name, "Top Free", free_apps_url)
+    if paid_apps_url:
+        apps += scrape_top_apps(category_name, "Top Paid", paid_apps_url)
 
-        for future in as_completed(futures):
-            try:
-                result = future.result()
-                if result:
-                    all_apps.extend(result)
-                    logging.info(f"✅ {len(result)} apps extracted from category {futures[future]}.")
-            except Exception as e:
-                logging.error(f"❌ Error processing category {futures[future]}: {e}")
+    if not apps:
+        logging.warning(f"⚠️ No apps found for category {category_name}.")
+        return
 
-    logging.info(f"✅ Total of {len(all_apps)} apps collected.")
+    save_apps_to_mongo(apps)
+    logging.info(f"✅ Saved {len(apps)} apps for category {category_name}.")
 
-    # Save to MongoDB
-    save_apps_to_mongo(all_apps)
-
-    return all_apps
+    # Extract URLs and dispatch task to get details
+    apps_urls = [{"url": app["url"]} for app in apps if "url" in app]
+    scrape_app_details_for_category.apply_async((apps_urls,), queue="app_details")
 
 
-@celery_app.task
-def scrape_app_details_parallel(apps):
-    """Extracts app details in parallel."""
+@celery_app.task(rate_limit="24/h", queue="app_details")
+def scrape_app_details_for_category(apps):
+    """Scrapes app details from a category batch."""
     all_details = []
-    logging.info("🚀 Starting app details extraction...")
+    logging.info("🔍 Scraping app details for a category batch...")
 
-    max_threads = settings.get("MAX_THREADS", 8)
-    time_between_requests = settings.get("TIME_BETWEEN_REQUESTS", [1, 3])
+    max_threads = settings.get("MAX_THREADS", 2)
+    time_between_requests = settings.get("TIME_BETWEEN_REQUESTS", [2, 5])
 
     with ThreadPoolExecutor(max_workers=max_threads) as executor:
         futures = {executor.submit(get_app_details, app["url"]): app for app in apps}
@@ -97,12 +92,9 @@ def scrape_app_details_parallel(apps):
                     all_details.append(details)
             except Exception as e:
                 logging.error(f"❌ Error fetching app details: {e}")
-            
-            time.sleep(time_between_requests[0])  # Minimum delay
 
-    logging.info(f"✅ Total of {len(all_details)} app details collected.")
+            time.sleep(time_between_requests[0])
 
-    # Save to MongoDB
+    logging.info(f"✅ Collected {len(all_details)} app details in category batch.")
     save_app_details_to_mongo(all_details)
-
-    return all_details
+    current_app.send_task("tasks.process_data.run_data_processing", queue="data_processor")

@@ -9,9 +9,9 @@ celery_app = Celery(
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
     include=["tasks.process_data"],
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
+    task_serializer="pickle",
+    result_serializer="pickle",
+    accept_content=["pickle", "json"],
 )
 
 # Logging configuration
@@ -21,7 +21,7 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-@celery_app.task(name="run_data_processing", queue="data_processor")
+@celery_app.task(name="tasks.process_data.run_data_processing", queue="data_processor")
 def run_data_processing():
     """Celery task to run full app data processing pipeline."""
     logging.info("🚀 Starting task: run_data_processing")

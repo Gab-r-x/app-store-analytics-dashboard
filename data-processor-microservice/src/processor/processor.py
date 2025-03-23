@@ -21,12 +21,17 @@ def process_apps():
     # Connect to MongoDB and PostgreSQL
     mongo_client = get_mongo_client()
     mongo_db = mongo_client.scraper_data
-    session = get_postgres_session()
+    _, session = get_postgres_session()
     logger.info("🔌 Connected to MongoDB and PostgreSQL")
 
-    # Fetch app details from MongoDB
-    raw_apps = list(mongo_db.app_details.find())
-    logger.info(f"📦 Loaded {len(raw_apps)} apps from MongoDB")
+    # Load app details and raw_apps by URL
+    details = {
+        d.get("Url") or d.get("url"): d
+        for d in mongo_db.app_details.find()
+        if d.get("Url") or d.get("url")
+    }
+    raw_apps = list(mongo_db.raw_apps.find())
+    logger.info(f"📦 Loaded {len(details)} app details and {len(raw_apps)} raw app entries")
 
     seen_apple_ids = set()
     processed_count = 0
@@ -38,17 +43,28 @@ def process_apps():
 
         for raw_app in batch:
             try:
-                normalized = normalize_app_data(raw_app)
-                if not validate_app_data(normalized):
+                url = raw_app.get("url")
+                detail = details.get(url)
+
+                if not detail:
+                    logger.debug(f"⛔ No detail found for URL: {url}")
+                    skipped_count += 1
+                    continue
+
+                # Merge and normalize
+                merged_app = {**detail, **raw_app}
+                normalized = normalize_app_data(merged_app)
+                transformed = transform_app_data(normalized)
+
+                if not validate_app_data(transformed):
                     skipped_count += 1
                     logger.debug("⛔ Skipped invalid app data")
                     continue
 
-                transformed = transform_app_data(normalized)
-                seen_apple_ids.add(transformed.apple_id)
+                seen_apple_ids.add(transformed["apple_id"])
 
-                stmt = insert(App).values(**transformed.dict())
-                update_dict = transformed.dict()
+                stmt = insert(App).values(**transformed)
+                update_dict = transformed.copy()
                 update_dict["last_seen"] = datetime.utcnow()
                 stmt = stmt.on_conflict_do_update(
                     index_elements=[App.apple_id],
@@ -57,7 +73,7 @@ def process_apps():
 
                 session.execute(stmt)
                 processed_count += 1
-                logger.debug(f"✅ Upserted app: {transformed.apple_id}")
+                logger.debug(f"✅ Upserted app: {transformed['apple_id']}")
 
             except Exception as e:
                 logger.error(f"❌ Error processing app: {e}")
@@ -65,8 +81,13 @@ def process_apps():
 
     # Deactivate apps not seen in this round
     logger.info("🧹 Deactivating apps not seen in this round...")
-    session.query(App).filter(~App.apple_id.in_(seen_apple_ids)).update({"active": False}, synchronize_session=False)
+    deactivated_count = 0
+    if seen_apple_ids:
+        deactivated_count = session.query(App).filter(~App.apple_id.in_(seen_apple_ids)).count()
+        session.query(App).filter(~App.apple_id.in_(seen_apple_ids)).update(
+            {"active": False}, synchronize_session=False
+        )
 
     session.commit()
     session.close()
-    logger.info(f"🏁 Processing complete. Processed: {processed_count}, Skipped: {skipped_count}, Deactivated: {len(set(App.apple_id) - seen_apple_ids)}")
+    logger.info(f"🏁 Processing complete. Processed: {processed_count}, Skipped: {skipped_count}, Deactivated: {deactivated_count}")

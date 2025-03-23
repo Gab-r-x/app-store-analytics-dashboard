@@ -5,35 +5,37 @@ def transform_app_data(app_data):
     """Apply transformations to normalized app data."""
     transformed = app_data.copy()
 
-    # Clean text fields
-    for field in ["name", "subtitle", "developer", "description", "rating_summary"]:
+    # Normalize common text fields
+    text_fields = ["name", "subtitle", "developer", "description", "rating_summary"]
+    for field in text_fields:
         if transformed.get(field):
             transformed[field] = clean_text(transformed[field])
 
-    # Clean reviews
-    if transformed.get("reviews"):
+    # Normalize reviews
+    if isinstance(transformed.get("reviews"), list):
         transformed["reviews"] = [clean_review(r) for r in transformed["reviews"]]
 
-    # Clean general info keys/values
-    if transformed.get("general_info"):
+    # Normalize general_info
+    if isinstance(transformed.get("general_info"), dict):
         transformed["general_info"] = {
             clean_text(k): clean_text(v) for k, v in transformed["general_info"].items()
         }
 
     return transformed
 
+
 def clean_text(text):
-    """Normalize and clean string data."""
+    """Normalize and clean string data to UTF-8 safe and readable format."""
     if not isinstance(text, str):
         return text
     text = unicodedata.normalize("NFKC", text)
-    text = text.encode("utf-8", errors="ignore").decode("utf-8")
+    text = text.encode("utf-8", errors="ignore").decode("utf-8")  # Safe re-encoding
     text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
 def clean_review(review):
-    """Clean each field inside a review dict."""
+    """Sanitize review fields."""
     return {
         "rating": clean_text(review.get("rating")),
         "author": clean_text(review.get("author")),

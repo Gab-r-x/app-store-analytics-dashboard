@@ -70,7 +70,7 @@ def get_app_details(app_url):
     # Título
     title = soup.find("h1", class_="product-header__title")
     details["Title"] = clean_text(title.text) if title else None
-
+    
     # Subtítulo
     subtitle = soup.find("h2", class_="product-header__subtitle")
     details["Subtitle"] = clean_text(subtitle.text) if subtitle else None
@@ -78,6 +78,9 @@ def get_app_details(app_url):
     # Desenvolvedor
     developer = soup.find("h2", class_="product-header__identity")
     details["Developer"] = clean_text(developer.text) if developer else None
+    
+    # App Url
+    details["Url"] = app_url
 
     # Rank da categoria
     category_rank = soup.select_one(".product-header__list__item a")

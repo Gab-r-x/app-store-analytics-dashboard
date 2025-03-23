@@ -26,7 +26,7 @@ logging.basicConfig(
 )
 
 
-@celery_app.task
+@celery_app.task(queue="app_details")
 def save_categories_to_mongo(categories):
     """Saves categories to MongoDB."""
     if not categories:
@@ -46,7 +46,7 @@ def save_categories_to_mongo(categories):
         raise
 
 
-@celery_app.task
+@celery_app.task(queue="app_details")
 def save_apps_to_mongo(apps):
     """Saves apps to MongoDB."""
     if not apps:
@@ -77,7 +77,7 @@ def save_apps_to_mongo(apps):
         raise
 
 
-@celery_app.task(ignore_result=True)
+@celery_app.task(ignore_result=True, queue="app_details")
 def save_app_details_to_mongo(app_details):
     """Saves app details to MongoDB."""
     if not app_details:
