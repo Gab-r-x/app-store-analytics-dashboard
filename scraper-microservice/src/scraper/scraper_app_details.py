@@ -39,6 +39,7 @@ def get_page_with_retry(url):
     attempt = 0
     while attempt < MAX_RETRIES:
         response = requests.get(url, headers=get_headers())
+        response.encoding = 'utf-8'
 
         if response.status_code == 200:
             return response
@@ -122,6 +123,8 @@ def get_app_details(app_url):
     reviews = []
     reviews_page_url = app_url + "?see-all=reviews"
     response_reviews = requests.get(reviews_page_url, headers=get_headers())
+    response.encoding = 'utf-8'
+
     if response_reviews.status_code == 200:
         soup_reviews = BeautifulSoup(response_reviews.text, 'html.parser')
         for review in soup_reviews.select(".we-customer-review"):

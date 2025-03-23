@@ -79,11 +79,13 @@ def get_top_lists(category_name, category_url):
     logging.info(f"Extracting app lists for category: {category_name}...")
 
     response = session.get(category_url, headers=get_headers())
+    response.encoding = 'utf-8'
+
     if response.status_code != 200:
         logging.error(f"❌ Error accessing {category_url}: {response.status_code}")
         return None, None
 
-    soup = BeautifulSoup(response.text, 'html.parser')
+    soup = BeautifulSoup(response.text, 'lxml')
     free_apps_link, paid_apps_link = None, None
     links = soup.find_all("a", class_="section__headline-link")
 
@@ -102,6 +104,8 @@ def scrape_top_apps(category_name, list_type, list_url):
     logging.info(f"Scraping apps for category {category_name} - {list_type}")
 
     response = session.get(list_url, headers=get_headers())
+    response.encoding = 'utf-8'
+
     if response.status_code != 200:
         logging.error(f"❌ Error accessing {list_url}: {response.status_code}")
         return []
