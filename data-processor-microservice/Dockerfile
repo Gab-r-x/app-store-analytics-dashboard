@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
 # Copy configuration and requirements
 COPY settings.toml /app/
 COPY requirements.txt /app/
+COPY /tests/ /app/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \

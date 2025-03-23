@@ -1,18 +1,20 @@
 from celery import Celery
 from pymongo import MongoClient
 import logging
+from config import settings
+
 
 # Celery configuration
 celery_app = Celery(
     "tasks",
-    broker="pyamqp://guest@rabbitmq//",
-    backend="mongodb://mongo:27017/scraper_results"
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
 )
 
 # MongoDB connection
 try:
-    client = MongoClient("mongodb://mongo:27017/")
-    db = client["scraper_data"]
+    client = MongoClient(settings.MONGO_URI)
+    db = client[settings.MONGO_DB_NAME]
     logging.info("✅ Successfully connected to MongoDB.")
 except Exception as e:
     logging.error(f"❌ Error connecting to MongoDB: {e}")

@@ -9,7 +9,6 @@ from sqlalchemy.dialects.postgresql import insert
 from dynaconf import settings
 import logging
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
@@ -18,19 +17,21 @@ BATCH_SIZE = settings.BATCH_SIZE or 50
 def process_apps():
     logger.info("🚀 Starting app processing pipeline")
 
-    # Connect to MongoDB and PostgreSQL
-    mongo_client = get_mongo_client()
-    mongo_db = mongo_client.scraper_data
+    mongo_db = get_mongo_client()
     _, session = get_postgres_session()
     logger.info("🔌 Connected to MongoDB and PostgreSQL")
 
-    # Load app details and raw_apps by URL
+    raw_details = list(mongo_db.app_details.find({"Url": {"$exists": True}, "processed": {"$ne": True}}))
+    logger.info(f"🧪 Found {len(raw_details)} unprocessed documents in app_details")
+
     details = {
-        d.get("Url") or d.get("url"): d
-        for d in mongo_db.app_details.find()
-        if d.get("Url") or d.get("url")
+        d["Url"].strip().lower(): d
+        for d in raw_details
+        if d.get("Url")
     }
+
     raw_apps = list(mongo_db.raw_apps.find())
+    logger.info(f"📦 Loaded {len(raw_apps)} raw app entries")
     logger.info(f"📦 Loaded {len(details)} app details and {len(raw_apps)} raw app entries")
 
     seen_apple_ids = set()
@@ -44,14 +45,17 @@ def process_apps():
         for raw_app in batch:
             try:
                 url = raw_app.get("url")
-                detail = details.get(url)
+                if not url:
+                    skipped_count += 1
+                    continue
 
+                normalized_url = url.strip().lower()
+                detail = details.get(normalized_url)
                 if not detail:
                     logger.debug(f"⛔ No detail found for URL: {url}")
                     skipped_count += 1
                     continue
 
-                # Merge and normalize
                 merged_app = {**detail, **raw_app}
                 normalized = normalize_app_data(merged_app)
                 transformed = transform_app_data(normalized)
@@ -75,11 +79,13 @@ def process_apps():
                 processed_count += 1
                 logger.debug(f"✅ Upserted app: {transformed['apple_id']}")
 
+                mongo_db.app_details.update_one({"_id": detail["_id"]}, {"$set": {"processed": True}})
+
             except Exception as e:
                 logger.error(f"❌ Error processing app: {e}")
+                session.rollback()
                 skipped_count += 1
 
-    # Deactivate apps not seen in this round
     logger.info("🧹 Deactivating apps not seen in this round...")
     deactivated_count = 0
     if seen_apple_ids:
