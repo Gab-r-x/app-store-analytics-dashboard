@@ -1,6 +1,6 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, func, text, Float
+from sqlalchemy import and_, func, text, Float, cast
 from src.models.app_model import App
 from fastapi import HTTPException
 from typing import List, Optional
@@ -31,11 +31,9 @@ async def get_apps_paginated(
     if has_in_app_purchases is not None:
         filters.append(App.has_in_app_purchases == ("Yes" if has_in_app_purchases else "No"))
     if price_min is not None:
-        filters.append(App.price != None)
-        filters.append(App.price.cast(Float) >= price_min)
+        filters.append(cast(func.nullif(func.replace(App.price, "$", ""), 'Free'), Float) >= price_min)
     if price_max is not None:
-        filters.append(App.price != None)
-        filters.append(App.price.cast(Float) <= price_max)
+        filters.append(cast(func.nullif(func.replace(App.price, "$", ""), 'Free'), Float) <= price_max)
     if downloads_min is not None:
         filters.append(App.monthly_downloads_estimate >= downloads_min)
     if downloads_max is not None:
