@@ -1,0 +1,18 @@
+[default]
+LOAD_DOTENV = true
+
+# PostgreSQL
+POSTGRES_URI = "postgresql://postgres:postgres@postgres:5432/analytics_db"
+
+# FastAPI
+PROJECT_NAME = "Analytics API"
+PROJECT_DESCRIPTION = "REST API to serve processed App Store data"
+API_PREFIX = "/api"
+DEBUG = true
+RELOAD = true
+
+# Pagination default
+PAGE_SIZE = 20
+
+# CORS
+ALLOWED_ORIGINS = ["*"]

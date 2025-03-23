@@ -6,11 +6,12 @@ from src.models.app_model import App
 from fastapi import HTTPException
 from typing import List
 from src.schemas.app_schema import AppSchema
+from src.core.config import settings
 
 async def get_apps_paginated(
     session: AsyncSession,
     skip: int = 0,
-    limit: int = 20,
+    limit: int = settings.PAGE_SIZE,
 ) -> List[AppSchema]:
     stmt = select(App).offset(skip).limit(limit)
     result = await session.execute(stmt)
@@ -19,4 +20,4 @@ async def get_apps_paginated(
     if not apps:
         raise HTTPException(status_code=404, detail="No apps found.")
 
-    return [AppSchema.from_orm(app) for app in apps]
+    return [AppSchema.model_validate(app) for app in apps]

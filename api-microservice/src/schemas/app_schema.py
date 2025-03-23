@@ -51,5 +51,6 @@ class AppSchema(BaseModel):
     last_seen: Optional[datetime]
     active: bool
 
-    class Config:
-        orm_mode = True
+    model_config = {
+        "from_attributes": True
+    }
