@@ -1,5 +1,3 @@
-# src/services/app_service.py
-
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.models.app_model import App
@@ -21,3 +19,16 @@ async def get_apps_paginated(
         raise HTTPException(status_code=404, detail="No apps found.")
 
     return [AppSchema.model_validate(app) for app in apps]
+
+async def get_app_by_id(
+    session: AsyncSession,
+    apple_id: str,
+) -> AppSchema:
+    stmt = select(App).where(App.apple_id == apple_id)
+    result = await session.execute(stmt)
+    app = result.scalar_one_or_none()
+
+    if not app:
+        raise HTTPException(status_code=404, detail="App not found.")
+
+    return AppSchema.model_validate(app)
