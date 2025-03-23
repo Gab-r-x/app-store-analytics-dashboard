@@ -1,13 +1,15 @@
-# src/routes/app_routes.py (continuado)
-
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
-from uuid import UUID
 
 from src.database.session import get_async_session
 from src.schemas.app_schema import AppSchema
-from src.services.app_service import get_apps_paginated, get_app_by_id
+from src.services.app_service import (
+    get_apps_paginated,
+    get_app_by_id,
+    get_all_categories,
+    get_all_labels,
+)
 
 router = APIRouter(prefix="/apps", tags=["Apps"])
 
@@ -16,11 +18,33 @@ router = APIRouter(prefix="/apps", tags=["Apps"])
 async def list_apps(
     session: AsyncSession = Depends(get_async_session),
     category: Optional[str] = Query(None),
-    search: Optional[str] = Query(None),
+    label: Optional[str] = Query(None),
+    has_in_app_purchases: Optional[bool] = Query(None),
+    price_min: Optional[float] = Query(None),
+    price_max: Optional[float] = Query(None),
+    downloads_min: Optional[float] = Query(None),
+    downloads_max: Optional[float] = Query(None),
+    revenue_min: Optional[float] = Query(None),
+    revenue_max: Optional[float] = Query(None),
+    screenshots_min: Optional[int] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, le=100)
 ):
-    return await get_apps_paginated(session, skip=skip, limit=limit)
+    return await get_apps_paginated(
+        session=session,
+        skip=skip,
+        limit=limit,
+        category=category,
+        label=label,
+        has_in_app_purchases=has_in_app_purchases,
+        price_min=price_min,
+        price_max=price_max,
+        downloads_min=downloads_min,
+        downloads_max=downloads_max,
+        revenue_min=revenue_min,
+        revenue_max=revenue_max,
+        screenshots_min=screenshots_min,
+    )
 
 
 @router.get("/{apple_id}", response_model=AppSchema)
@@ -29,3 +53,13 @@ async def get_app(apple_id: str, session: AsyncSession = Depends(get_async_sessi
     if not app:
         raise HTTPException(status_code=404, detail="App not found")
     return app
+
+
+@router.get("/filters/categories", response_model=List[str])
+async def get_categories(session: AsyncSession = Depends(get_async_session)):
+    return await get_all_categories(session)
+
+
+@router.get("/filters/labels", response_model=List[str])
+async def get_labels(session: AsyncSession = Depends(get_async_session)):
+    return await get_all_labels(session)
