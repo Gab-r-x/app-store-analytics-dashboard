@@ -31,9 +31,12 @@ services:
       context: ./data-processor-microservice
       dockerfile: Dockerfile
     depends_on:
-      - mongo
-      - postgres
-      - rabbitmq
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
     environment:
       - CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
       - CELERY_RESULT_BACKEND=mongodb://mongo:27017/scraper_results
@@ -104,6 +107,11 @@ services:
       - "5432:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
   mongo_data:
