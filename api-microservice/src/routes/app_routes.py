@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
+from uuid import UUID
 
 from src.database.session import get_async_session
 from src.schemas.app_schema import AppSchema
@@ -27,6 +28,8 @@ async def list_apps(
     revenue_min: Optional[float] = Query(None),
     revenue_max: Optional[float] = Query(None),
     screenshots_min: Optional[int] = Query(None),
+    rating_min: Optional[float] = Query(None),
+    list_type: Optional[str] = Query(None),
     skip: int = Query(0, ge=0),
     limit: int = Query(20, le=100)
 ):
@@ -44,6 +47,8 @@ async def list_apps(
         revenue_min=revenue_min,
         revenue_max=revenue_max,
         screenshots_min=screenshots_min,
+        rating_min=rating_min,
+        list_type=list_type,
     )
 
 

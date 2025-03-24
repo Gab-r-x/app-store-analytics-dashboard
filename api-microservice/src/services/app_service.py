@@ -21,6 +21,8 @@ async def get_apps_paginated(
     revenue_min: Optional[float] = None,
     revenue_max: Optional[float] = None,
     screenshots_min: Optional[int] = None,
+    rating_min: Optional[float] = None,
+    list_type: Optional[str] = None,
 ) -> List[AppSchema]:
     filters = []
 
@@ -44,6 +46,11 @@ async def get_apps_paginated(
         filters.append(App.monthly_revenue_estimate <= revenue_max)
     if screenshots_min is not None:
         filters.append(App.num_screenshots >= screenshots_min)
+    if rating_min is not None:
+        rating_cast = cast(func.regexp_replace(App.rating_summary, '[^0-9.]', '', 'g'), Float)
+        filters.append(rating_cast >= rating_min)
+    if list_type:
+        filters.append(App.list_type == list_type)
 
     stmt = select(App).where(and_(*filters)).offset(skip).limit(limit)
     result = await session.execute(stmt)
