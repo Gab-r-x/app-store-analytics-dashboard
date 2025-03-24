@@ -6,6 +6,7 @@ from fastapi import HTTPException
 from typing import List, Optional
 from src.schemas.app_schema import AppSchema
 from src.core.config import settings
+import logging
 
 async def get_apps_paginated(
     session: AsyncSession,
@@ -86,3 +87,25 @@ async def get_all_labels(session: AsyncSession) -> List[str]:
     raw_sql = text("SELECT DISTINCT UNNEST(labels) FROM apps WHERE labels IS NOT NULL")
     result = await session.execute(raw_sql)
     return [row[0] for row in result.all() if row[0]]
+
+
+async def search_apps(session: AsyncSession, query: str, limit: int = 20) -> List[AppSchema]:
+    ts_query = func.websearch_to_tsquery("english", query)
+
+    stmt = (
+            select(App)
+            .where(
+                and_(
+                    App.search_vector.op("@@")(ts_query),
+                )
+            )
+            .limit(limit)
+        )
+
+    result = await session.execute(stmt)
+    apps = result.scalars().all()
+
+    if not apps:
+        raise HTTPException(status_code=404, detail="No apps found matching the search criteria.")
+
+    return [AppSchema.model_validate(app) for app in apps]

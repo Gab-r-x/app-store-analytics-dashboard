@@ -52,5 +52,6 @@ class AppSchema(BaseModel):
     active: bool
 
     model_config = {
-        "from_attributes": True
+        "from_attributes": True,
+        "extra": "ignore" 
     }

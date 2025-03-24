@@ -10,6 +10,7 @@ from src.services.app_service import (
     get_app_by_id,
     get_all_categories,
     get_all_labels,
+    search_apps
 )
 
 router = APIRouter(prefix="/apps", tags=["Apps"])
@@ -50,6 +51,15 @@ async def list_apps(
         rating_min=rating_min,
         list_type=list_type,
     )
+    
+
+@router.get("/search", response_model=List[AppSchema])
+async def search_apps_route(
+    q: str = Query(..., min_length=2, description="Search query"),
+    limit: int = Query(20, le=100),
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await search_apps(session, query=q, limit=limit)
 
 
 @router.get("/{apple_id}", response_model=AppSchema)

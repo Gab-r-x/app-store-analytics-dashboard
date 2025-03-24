@@ -3,8 +3,9 @@
 import uuid
 from datetime import date, datetime
 from sqlalchemy import Column, String, Integer, Boolean, Float, Date, DateTime, JSON
-from sqlalchemy.dialects.postgresql import UUID, ARRAY
+from sqlalchemy.dialects.postgresql import UUID, ARRAY, TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
+
 
 Base = declarative_base()
 
@@ -48,3 +49,6 @@ class App(Base):
     # Tracking
     last_seen = Column(DateTime, default=datetime.utcnow)
     active = Column(Boolean, default=True)
+
+    # Full Text Search
+    search_vector = Column(TSVECTOR)
