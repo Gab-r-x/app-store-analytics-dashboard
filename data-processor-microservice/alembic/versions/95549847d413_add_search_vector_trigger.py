@@ -23,27 +23,28 @@ def upgrade() -> None:
     # Create GIN index
     op.execute("CREATE INDEX apps_search_vector_idx ON apps USING GIN (search_vector)")
 
-    # Create function
+    # Remove função antiga, se existir
+    op.execute("DROP FUNCTION IF EXISTS update_search_vector")
+
+    # Cria nova função usando concat_ws
     op.execute("""
         CREATE FUNCTION update_search_vector() RETURNS trigger AS $$
         BEGIN
             NEW.search_vector := to_tsvector('english',
-                coalesce(NEW.name, '') || ' ' ||
-                coalesce(NEW.subtitle, '') || ' ' ||
-                coalesce(NEW.developer, '') || ' ' ||
-                coalesce(NEW.description, '') || ' ' ||
-                array_to_string(NEW.labels, ' ')
+                concat_ws(' ', NEW.name, NEW.subtitle, NEW.developer, NEW.description)
             );
             RETURN NEW;
         END
         $$ LANGUAGE plpgsql;
     """)
 
-    # Create trigger
+    # Cria trigger para manter search_vector atualizado
     op.execute("""
-        CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE
-        ON apps FOR EACH ROW EXECUTE FUNCTION update_search_vector();
+        CREATE TRIGGER tsvectorupdate
+        BEFORE INSERT OR UPDATE ON apps
+        FOR EACH ROW EXECUTE FUNCTION update_search_vector();
     """)
+
 
 
 def downgrade():
