@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y \
 
 # Copy configuration and requirements
 COPY settings.toml /app/
+COPY alembic.ini /app/
 COPY requirements.txt /app/
 COPY /tests/ /app/
+COPY alembic/ /app/alembic/
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
