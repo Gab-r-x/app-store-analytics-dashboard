@@ -1,11 +1,15 @@
 from celery import Celery, current_app
 import logging
 import time
+import re
+from config import settings
+from tasks.progress_tracker import init_scrape_progress, mark_category_done
+from database.get_mongo import get_mongo_collection
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from scraper.scraper_categories import get_categories, scrape_top_apps, get_top_lists
 from scraper.scraper_app_details import get_app_details
-from config import settings
-from tasks.save_to_mongo import save_categories_to_mongo, save_apps_to_mongo, save_app_details_to_mongo
+from scraper.scraper_sensor_tower import scrape_sensor_tower_for_all
+from tasks.save_to_mongo import save_categories_to_mongo, save_apps_to_mongo, save_app_details_to_mongo, save_sensor_metrics_to_mongo
 
 # Celery configuration
 celery_app = Celery(
@@ -25,7 +29,6 @@ logging.basicConfig(
     format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
 @celery_app.task(queue="app_details")
 def scrape_categories():
     """Extracts categories from the App Store."""
@@ -40,6 +43,9 @@ def scrape_categories():
 
     # Save to MongoDB
     save_categories_to_mongo(categories)
+        
+    category_names = [cat[0] for cat in categories]
+    init_scrape_progress(category_names)
 
     # Dispatch a scrape_category_apps task for each category
     for category in categories:
@@ -64,6 +70,7 @@ def scrape_category_apps(category):
 
     if not apps:
         logging.warning(f"⚠️ No apps found for category {category_name}.")
+        mark_category_done(category_name)
         return
 
     save_apps_to_mongo(apps)
@@ -73,10 +80,11 @@ def scrape_category_apps(category):
     apps_urls = [{"url": app["url"]} for app in apps if "url" in app]
     scrape_app_details_for_category.apply_async((apps_urls,), queue="app_details")
 
+    # Mark as processed
+    mark_category_done(category_name)
 
 @celery_app.task(rate_limit="24/h", queue="app_details")
 def scrape_app_details_for_category(apps):
-    """Scrapes app details from a category batch."""
     all_details = []
     logging.info("🔍 Scraping app details for a category batch...")
 
@@ -98,3 +106,38 @@ def scrape_app_details_for_category(apps):
     logging.info(f"✅ Collected {len(all_details)} app details in category batch.")
     save_app_details_to_mongo(all_details)
     current_app.send_task("tasks.process_data.run_data_processing", queue="data_processor")
+
+@celery_app.task(queue="app_details")
+def scrape_sensor_tower_data():
+    """Scrapes Sensor Tower data (downloads & revenue) for all apps in raw_apps."""
+    logging.info("📊 Starting Sensor Tower data scraping...")
+
+    collection = get_mongo_collection("raw_apps")
+    cursor = collection.find({}, {"url": 1})
+    urls = [doc["url"] for doc in cursor if "url" in doc]
+
+    if not urls:
+        logging.warning("⚠️ No app URLs found to scrape Sensor Tower data.")
+        return
+
+    # Extrai apple_ids válidos das URLs
+    apple_ids = []
+    for url in urls:
+        match = re.search(r'id(\d+)', url)
+        if match:
+            apple_ids.append(match.group(1))
+        else:
+            logging.warning(f"⚠️ Could not extract apple_id from URL: {url}")
+
+    if not apple_ids:
+        logging.warning("⚠️ No valid Apple IDs extracted.")
+        return
+
+    # Faz o scraping sequencial dos dados
+    results = scrape_sensor_tower_for_all(apple_ids)
+
+    if results:
+        save_sensor_metrics_to_mongo(results)
+        logging.info(f"✅ Saved Sensor Tower data for {len(results)} apps.")
+    else:
+        logging.warning("⚠️ No Sensor Tower data scraped.")

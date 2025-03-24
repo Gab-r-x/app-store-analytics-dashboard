@@ -11,9 +11,13 @@ USER_AGENTS = [
 ]
 
 # MongoDB Configuration
-MONGO_URI = "mongodb://mongo:27017"
+MONGO_URI = "mongodb://mongo:27017/"
 MONGO_DB_NAME = "scraper_data"
 
 # Celery Configuration
 CELERY_BROKER_URL = "pyamqp://guest@rabbitmq//"
 CELERY_RESULT_BACKEND = "db+mongodb://mongo:27017/scraper_results"
+
+# Sensor Tower Configuration
+SENSORTOWER_LOGIN = "gabrieldev.eng@gmail.com"
+SENSORTOWER_PASS = "zyz6WEnH33a9#r%"
