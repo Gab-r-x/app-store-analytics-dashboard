@@ -1,5 +1,5 @@
 from sqlalchemy import Column, String, Integer, Float, Text, Date, JSON, ARRAY, Boolean
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
 import uuid
 from datetime import datetime
@@ -56,6 +56,9 @@ class App(Base):
     # App activity tracking
     last_seen = Column(Date, default=datetime.utcnow)
     active = Column(Boolean, default=True)
+    
+    # Full-Text Search
+    search_vector = Column(TSVECTOR)
 
     def __repr__(self):
         return f"<App(name={self.name}, developer={self.developer}, rank={self.rank})>"
