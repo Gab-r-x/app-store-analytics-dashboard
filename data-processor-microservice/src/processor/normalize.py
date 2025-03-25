@@ -18,8 +18,8 @@ def normalize_app_data(raw_app):
 
         "price": raw_app.get("Price"),
         "has_in_app_purchases": detect_iap(raw_app),
-        "monthly_revenue_estimate": safe_float(raw_app.get("monthly_revenue")),
-        "monthly_downloads_estimate": safe_float(raw_app.get("monthly_downloads")),
+        # "monthly_revenue_estimate": safe_float(raw_app.get("monthly_revenue")),
+        # "monthly_downloads_estimate": safe_float(raw_app.get("monthly_downloads")),
 
         "description": raw_app.get("Description"),
         "screenshots": raw_app.get("Screenshots"),

@@ -28,13 +28,13 @@ def get_sensor_tower_data(driver, apple_id: str) -> dict:
     url = f"https://app.sensortower.com/overview/{apple_id}?country=US"
     logger.info(f"🌐 Scraping Sensor Tower for Apple ID: {apple_id}")
 
-    for attempt in range(2):  # retry up to 2 times
+    for attempt in range(2):  # Retry up to 2 times
         try:
             driver.get(url)
 
             wait = WebDriverWait(driver, 15)
 
-            # Wait for downloads and revenue elements to appear and be visible
+            # Wait for both elements
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, 'span[aria-labelledby="app-overview-unified-kpi-downloads"]')))
             wait.until(EC.visibility_of_element_located((By.CSS_SELECTOR, 'span[aria-labelledby="app-overview-unified-kpi-revenue"]')))
 
@@ -58,12 +58,15 @@ def get_sensor_tower_data(driver, apple_id: str) -> dict:
                 return {}
 
         except Exception as e:
-            logger.warning(f"🔁 Attempt {attempt+1} failed for {apple_id}: {e}")
-            if attempt == 1:
+            logger.warning(f"🔁 Attempt {attempt + 1} failed for {apple_id}: {e}")
+            if attempt == 0:
+                logger.info("⏱ Waiting 60 seconds before retrying...")
+                time.sleep(60)
+            else:
                 logger.error(f"❌ Failed after retrying for Apple ID: {apple_id}")
                 return {}
 
-def scrape_sensor_tower_for_all(app_ids: list) -> list:
+def scrape_sensor_tower_for_all(app_ids: list, current_app) -> list:
     """Sequentially scrapes a list of Apple IDs using a single logged-in Selenium session."""
     driver = login_with_selenium()
     if not driver:
@@ -76,6 +79,8 @@ def scrape_sensor_tower_for_all(app_ids: list) -> list:
         if data:
             results.append(data)
             save_sensor_metrics_to_mongo(data)
+            current_app.send_task("tasks.process_data.run_sensor_metrics_processing", queue="data_processor")
+
         random_delay()
 
     driver.quit()

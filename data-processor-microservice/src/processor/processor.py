@@ -97,3 +97,80 @@ def process_apps():
     session.commit()
     session.close()
     logger.info(f"🏁 Processing complete. Processed: {processed_count}, Skipped: {skipped_count}, Deactivated: {deactivated_count}")
+
+
+def parse_estimate(value: str, is_revenue: bool = False) -> float:
+    """Converts estimates like '80K', '$2M', '< $5k' into float values."""
+    if not value:
+        return 0.0
+
+    value = value.replace("$", "").replace(",", "").strip().lower()
+
+    if "<" in value:
+        return 5000.0 if is_revenue else 0.0
+
+    multiplier = 1
+    if value.endswith("k"):
+        multiplier = 1_000
+        value = value[:-1]
+    elif value.endswith("m"):
+        multiplier = 1_000_000
+        value = value[:-1]
+
+    try:
+        return float(value) * multiplier
+    except ValueError:
+        return 0.0
+
+def process_sensor_tower_metrics():
+    logger.info("🚀 Starting Sensor Tower metrics update...")
+
+    mongo_db = get_mongo_client()
+    _, session = get_postgres_session()
+
+    docs = list(mongo_db.sensor_tower_metrics.find({"processed": {"$ne": True}}))
+    logger.info(f"📦 Found {len(docs)} unprocessed metrics")
+
+    updated = 0
+    skipped = 0
+
+    for doc in docs:
+        try:
+            apple_id = doc.get("apple_id")
+            if not apple_id:
+                skipped += 1
+                continue
+
+            downloads = parse_estimate(doc.get("monthly_downloads_estimate", ""))
+            revenue = parse_estimate(doc.get("monthly_revenue_estimate", ""), is_revenue=True)
+
+            stmt = (
+                insert(App)
+                .values(
+                    apple_id=apple_id,
+                    monthly_downloads_estimate=downloads,
+                    monthly_revenue_estimate=revenue,
+                    last_seen=datetime.utcnow(),
+                )
+                .on_conflict_do_update(
+                    index_elements=[App.apple_id],
+                    set_={
+                        "monthly_downloads_estimate": downloads,
+                        "monthly_revenue_estimate": revenue,
+                        "last_seen": datetime.utcnow(),
+                    },
+                )
+            )
+
+            session.execute(stmt)
+            mongo_db.sensor_tower_metrics.update_one({"_id": doc["_id"]}, {"$set": {"processed": True}})
+            updated += 1
+
+        except Exception as e:
+            logger.error(f"❌ Error updating app {doc.get('apple_id')}: {e}")
+            session.rollback()
+            skipped += 1
+
+    session.commit()
+    session.close()
+    logger.info(f"✅ Metrics update complete. Updated: {updated}, Skipped: {skipped}")

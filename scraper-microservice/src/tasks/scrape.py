@@ -120,7 +120,6 @@ def scrape_sensor_tower_data():
         logging.warning("⚠️ No app URLs found to scrape Sensor Tower data.")
         return
 
-    # Extrai apple_ids válidos das URLs
     apple_ids = []
     for url in urls:
         match = re.search(r'id(\d+)', url)
@@ -133,10 +132,10 @@ def scrape_sensor_tower_data():
         logging.warning("⚠️ No valid Apple IDs extracted.")
         return
 
-    results = scrape_sensor_tower_for_all(apple_ids)
+    results = scrape_sensor_tower_for_all(apple_ids, current_app)
 
     if results:
-        # save_sensor_metrics_to_mongo(results)
         logging.info(f"✅ Saved Sensor Tower data for {len(results)} apps.")
     else:
         logging.warning("⚠️ No Sensor Tower data scraped.")
+    # current_app.send_task("tasks.process_data.run_sensor_metrics_processing", queue="data_processor")

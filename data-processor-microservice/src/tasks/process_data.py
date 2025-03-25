@@ -1,6 +1,6 @@
 from celery import Celery
 from config import settings
-from processor.processor import process_apps
+from processor.processor import process_apps, process_sensor_tower_metrics
 import logging
 
 # Celery configuration
@@ -27,3 +27,11 @@ def run_data_processing():
     logging.info("🚀 Starting task: run_data_processing")
     process_apps()
     logging.info("🏁 Task finished: run_data_processing")
+
+
+@celery_app.task(name="tasks.process_data.run_sensor_metrics_processing", queue="data_processor")
+def run_sensor_metrics_processing():
+    """Celery task to process Sensor Tower metrics into PostgreSQL."""
+    logging.info("🚀 Starting task: run_sensor_metrics_processing")
+    process_sensor_tower_metrics()
+    logging.info("🏁 Task finished: run_sensor_metrics_processing")
