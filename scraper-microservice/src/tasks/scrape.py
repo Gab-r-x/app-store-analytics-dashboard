@@ -133,11 +133,10 @@ def scrape_sensor_tower_data():
         logging.warning("⚠️ No valid Apple IDs extracted.")
         return
 
-    # Faz o scraping sequencial dos dados
     results = scrape_sensor_tower_for_all(apple_ids)
 
     if results:
-        save_sensor_metrics_to_mongo(results)
+        # save_sensor_metrics_to_mongo(results)
         logging.info(f"✅ Saved Sensor Tower data for {len(results)} apps.")
     else:
         logging.warning("⚠️ No Sensor Tower data scraped.")

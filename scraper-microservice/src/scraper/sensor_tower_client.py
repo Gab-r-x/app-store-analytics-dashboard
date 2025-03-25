@@ -1,58 +1,65 @@
-import requests
 import logging
 import random
-from bs4 import BeautifulSoup
+import time
 from config import settings
+import undetected_chromedriver as uc
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 USER_AGENTS = settings.USER_AGENTS
-
-# Logging
-logger = logging.getLogger(__name__)
-
 LOGIN_URL = "https://app.sensortower.com/users/sign_in?product=st"
 
-
-def get_authenticity_token(session: requests.Session) -> str:
-    """Fetch the authenticity_token required for login."""
-    response = session.get(LOGIN_URL)
-    if response.status_code != 200:
-        logger.error("❌ Failed to fetch login page for authenticity token")
-        return ""
-
-    soup = BeautifulSoup(response.text, "html.parser")
-    token_input = soup.find("input", {"name": "authenticity_token"})
-    return token_input["value"] if token_input else ""
+logger = logging.getLogger(__name__)
 
 
-def login_to_sensortower() -> requests.Session:
-    """Logs into Sensor Tower and returns an authenticated session."""
-    session = requests.Session()
-    token = get_authenticity_token(session)
+def create_driver() -> uc.Chrome:
+    user_agent = random.choice(USER_AGENTS)
+    options = uc.ChromeOptions()
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument(f"user-agent={user_agent}")
 
-    if not token:
-        logger.error("❌ Could not extract authenticity_token")
-        return None
+    logger.info(f"🧠 Using User-Agent: {user_agent}")
 
-    payload = {
-        "utf8": "✓",
-        "authenticity_token": token,
-        "user[email]": settings.SENSORTOWER_LOGIN,
-        "user[password]": settings.SENSORTOWER_PASS,
-        "user[otp_attempt]": ""
-    }
+    driver = uc.Chrome(options=options)
+    return driver
 
-    headers = {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "User-Agent": random.choice(USER_AGENTS),
-        "Referer": LOGIN_URL,
-        "Origin": "https://app.sensortower.com"
-    }
+def login_with_selenium() -> uc.Chrome:
+    driver = create_driver()
+    driver.get(LOGIN_URL)
 
-    response = session.post(LOGIN_URL, headers=headers, data=payload, allow_redirects=True)
+    try:
+        # 1. Preenche e envia o e-mail
+        email_input = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.NAME, "user[email]"))
+        )
+        email_input.send_keys(settings.SENSORTOWER_LOGIN)
+        email_input.send_keys(Keys.RETURN)
 
-    if response.status_code in [200, 302]:
-        logger.info("✅ Successfully logged in to Sensor Tower")
-        return session
-    else:
-        logger.error(f"❌ Login failed with status {response.status_code}")
+        logger.info("📧 Email enviado. Aguardando campo de senha...")
+
+        # 2. Espera o campo de senha aparecer e envia a senha
+        password_input = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.NAME, "user[password]"))
+        )
+        password_input.send_keys(settings.SENSORTOWER_PASS)
+        password_input.send_keys(Keys.RETURN)
+
+        logger.info("🔐 Senha enviada. Aguardando redirecionamento...")
+
+        # 3. Aguarda redirecionamento após login
+        WebDriverWait(driver, 15).until(
+            EC.url_contains("/overview")
+        )
+
+        logger.info("✅ Login completo com sucesso!")
+        return driver
+
+    except Exception as e:
+        logger.error(f"❌ Error durante o login em duas etapas: {e}")
+        driver.quit()
         return None

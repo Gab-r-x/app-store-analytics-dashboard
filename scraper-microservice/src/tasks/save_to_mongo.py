@@ -104,10 +104,22 @@ def save_app_details_to_mongo(app_details):
         logging.error(f"❌ Error saving app details to MongoDB: {e}")
         raise
 
-def save_sensor_metrics_to_mongo(metrics: list):
-    """Saves Sensor Tower metrics to a MongoDB collection."""
-    if metrics:
-        db.sensor_tower_metrics.insert_many(metrics)
-        logging.info(f"📥 Inserted {len(metrics)} documents into sensor_tower_metrics.")
-    else:
-        logging.warning("⚠️ No metrics to insert into sensor_tower_metrics.")
+# def save_sensor_metrics_to_mongo(metrics: list):
+#     """Saves Sensor Tower metrics to a MongoDB collection."""
+#     if metrics:
+#         db.sensor_tower_metrics.insert_many(metrics)
+#         logging.info(f"📥 Inserted {len(metrics)} documents into sensor_tower_metrics.")
+#     else:
+#         logging.warning("⚠️ No metrics to insert into sensor_tower_metrics.")
+
+def save_sensor_metrics_to_mongo(data: dict):
+    """Saves a single Sensor Tower metric document to MongoDB."""
+    if not data:
+        logging.warning("⚠️ No data to insert into sensor_tower_metrics.")
+        return
+
+    try:
+        db.sensor_tower_metrics.insert_one(data)
+        logging.info(f"📥 Inserted metric for Apple ID: {data.get('apple_id')}")
+    except Exception as e:
+        logging.error(f"❌ Failed to insert metric for Apple ID: {data.get('apple_id')} - Error: {e}")
