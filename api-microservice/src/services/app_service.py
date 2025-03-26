@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import and_, func, text, Float, cast
 from src.models.app_model import App
 from fastapi import HTTPException
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from src.schemas.app_schema import AppSchema
 from src.core.config import settings
 import logging
@@ -24,7 +24,9 @@ async def get_apps_paginated(
     screenshots_min: Optional[int] = None,
     rating_min: Optional[float] = None,
     list_type: Optional[str] = None,
-) -> List[AppSchema]:
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = "desc",
+) -> Tuple[int, List[AppSchema]]:
     filters = []
 
     if category:
@@ -53,14 +55,30 @@ async def get_apps_paginated(
     if list_type:
         filters.append(App.list_type == list_type)
 
+    # Count total apps for pagination
+    count_stmt = select(func.count()).select_from(App).where(and_(*filters))
+    total_result = await session.execute(count_stmt)
+    total = total_result.scalar()
+
+    # Sort
+    sort_column = {
+        "name": App.name,
+        "rank": App.rank,
+        "downloads": App.monthly_downloads_estimate,
+        "revenue": App.monthly_revenue_estimate,
+    }.get(sort_by, None)
+
     stmt = select(App).where(and_(*filters)).offset(skip).limit(limit)
+    if sort_column is not None:
+        if sort_order == "asc":
+            stmt = stmt.order_by(sort_column.asc())
+        else:
+            stmt = stmt.order_by(sort_column.desc())
+
     result = await session.execute(stmt)
     apps = result.scalars().all()
 
-    if not apps:
-        raise HTTPException(status_code=404, detail="No apps found.")
-
-    return [AppSchema.model_validate(app) for app in apps]
+    return total, [AppSchema.model_validate(app) for app in apps]
 
 
 async def get_app_by_id(
@@ -89,23 +107,29 @@ async def get_all_labels(session: AsyncSession) -> List[str]:
     return [row[0] for row in result.all() if row[0]]
 
 
-async def search_apps(session: AsyncSession, query: str, limit: int = 20) -> List[AppSchema]:
+async def search_apps(session: AsyncSession, query: str, limit: int = 20, skip: int = 0):
     ts_query = func.websearch_to_tsquery("english", query)
 
     stmt = (
-            select(App)
-            .where(
-                and_(
-                    App.search_vector.op("@@")(ts_query),
-                )
-            )
-            .limit(limit)
-        )
+        select(App)
+        .where(App.search_vector.op("@@")(ts_query))
+        .offset(skip)
+        .limit(limit)
+    )
+
+    total_stmt = (
+        select(func.count())
+        .select_from(App)
+        .where(App.search_vector.op("@@")(ts_query))
+    )
 
     result = await session.execute(stmt)
     apps = result.scalars().all()
 
-    if not apps:
-        raise HTTPException(status_code=404, detail="No apps found matching the search criteria.")
+    total_result = await session.execute(total_stmt)
+    total = total_result.scalar()
 
-    return [AppSchema.model_validate(app) for app in apps]
+    return {
+        "apps": [AppSchema.model_validate(app) for app in apps],
+        "total": total
+    }
