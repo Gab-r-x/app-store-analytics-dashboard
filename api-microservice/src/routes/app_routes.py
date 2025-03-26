@@ -82,3 +82,4 @@ async def get_categories(session: AsyncSession = Depends(get_async_session)):
 @router.get("/filters/labels", response_model=List[str])
 async def get_labels(session: AsyncSession = Depends(get_async_session)):
     return await get_all_labels(session)
+

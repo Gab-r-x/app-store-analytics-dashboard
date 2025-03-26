@@ -1,7 +1,7 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from src.routes import app_routes
+from src.routes import app_routes, analysis_routes
 from src.core.config import settings
 from contextlib import asynccontextmanager
 
@@ -35,6 +35,7 @@ app.add_middleware(
 
 # Register routers
 app.include_router(app_routes.router)
+app.include_router(analysis_routes.router)
 
 # Health check route
 @app.get("/")
