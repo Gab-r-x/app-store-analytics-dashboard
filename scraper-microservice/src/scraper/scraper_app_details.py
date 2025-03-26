@@ -68,36 +68,46 @@ def get_app_details(app_url):
     soup = BeautifulSoup(response.text, 'html.parser')
     details = {}
 
-    # Título
+    # title
     title = soup.find("h1", class_="product-header__title")
     details["Title"] = clean_text(title.text) if title else None
     
-    # Subtítulo
+    # subtitle
     subtitle = soup.find("h2", class_="product-header__subtitle")
     details["Subtitle"] = clean_text(subtitle.text) if subtitle else None
+    
+    soup = BeautifulSoup(response.text, 'html.parser')
 
-    # Desenvolvedor
+    # icon
+    icon_el = soup.select_one("picture.we-artwork source[type='image/png']")
+    if icon_el:
+        icon_url = icon_el.get("srcset", "").split(",")[-1].strip().split(" ")[0]
+        details["icon_url"] = icon_url
+    else:
+        details["icon_url"] = None
+
+    # developer
     developer = soup.find("h2", class_="product-header__identity")
     details["Developer"] = clean_text(developer.text) if developer else None
     
-    # App Url
+    # app url
     details["Url"] = app_url
 
-    # Rank da categoria
+    # category_rank
     category_rank = soup.select_one(".product-header__list__item a")
     details["Category Rank"] = clean_text(category_rank.text) if category_rank else None
 
-    # Avaliação
+    # rating
     rating_info = soup.select_one(".we-rating-count.star-rating__count")
     details["Rating"] = clean_text(rating_info.text) if rating_info else None
 
-    # Preço
+    # price
     price_info = soup.select_one(".inline-list__item--bulleted")
     details["Price"] = clean_text(price_info.text) if price_info else None
 
-    # Capturas de tela
+    # screenshots
     screenshots = []
-    for picture in soup.select("picture.we-artwork"):
+    for picture in soup.select('picture.we-artwork--screenshot-platform-iphone'):
         sources = picture.find_all("source")
         best_quality = None
         for source in sources:
@@ -108,18 +118,24 @@ def get_app_details(app_url):
             screenshots.append(best_quality)
     details["Screenshots"] = screenshots    
 
-    # Descrição
-    description = soup.select_one(".section__description p")
-    details["Description"] = clean_text(description.text) if description else None
+    # description
+    description_container = soup.select_one(".we-truncate--multi-line")
 
-    # Última versão
+    if description_container:
+        paragraphs = description_container.find_all("p")
+        description = "\n\n".join(p.get_text(strip=True) for p in paragraphs if p.get_text(strip=True))
+        details["Description"] = description
+    else:
+        details["Description"] = None
+
+    # last version
     latest_version = soup.select_one(".whats-new__latest__version")
     latest_version_date = soup.select_one(".whats-new__latest time")
       
     details["Latest Version"] = clean_text(latest_version.text) if latest_version else None
     details["Latest Version Date"] = clean_text(latest_version_date.text) if latest_version_date else None
 
-    # Avaliações
+    # reviews
     reviews = []
     reviews_page_url = app_url + "?see-all=reviews"
     response_reviews = requests.get(reviews_page_url, headers=get_headers())
@@ -137,13 +153,13 @@ def get_app_details(app_url):
             })
     details["Reviews"] = reviews
 
-    # Dados de privacidade
+    # privacy
     privacy = []
     for item in soup.select(".privacy-type__data-category-heading"):
         privacy.append(clean_text(item.text))
     details["Privacy Data"] = privacy
 
-    # Informações gerais
+    # general info
     general_info = {}
     for info in soup.select(".information-list__item"):
         key = info.find("dt")

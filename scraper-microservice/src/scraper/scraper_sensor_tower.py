@@ -8,6 +8,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from tasks.save_to_mongo import save_sensor_metrics_to_mongo
+from database.get_mongo import get_mongo_connection
 
 # Logging
 logger = logging.getLogger(__name__)
@@ -66,6 +67,7 @@ def get_sensor_tower_data(driver, apple_id: str) -> dict:
                 logger.error(f"❌ Failed after retrying for Apple ID: {apple_id}")
                 return {}
 
+
 def scrape_sensor_tower_for_all(app_ids: list, current_app) -> list:
     """Sequentially scrapes a list of Apple IDs using a single logged-in Selenium session."""
     driver = login_with_selenium()
@@ -73,8 +75,15 @@ def scrape_sensor_tower_for_all(app_ids: list, current_app) -> list:
         logger.error("🚫 Could not start Selenium session or login failed.")
         return []
 
+    mongo_db = get_mongo_connection()
     results = []
+
     for app_id in app_ids:
+        # Verify if apple_id already exists in sensor_tower_metrics
+        if mongo_db.sensor_tower_metrics.find_one({"apple_id": app_id}):
+            logger.info(f"⏩ Skipping {app_id}, already exists in sensor_tower_metrics")
+            continue
+
         data = get_sensor_tower_data(driver, app_id)
         if data:
             results.append(data)

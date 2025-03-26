@@ -1,6 +1,6 @@
-from celery import Celery
-from pymongo import MongoClient
 import logging
+from celery import Celery
+from database.get_mongo import get_mongo_connection, get_mongo_collection
 from config import settings
 
 
@@ -12,13 +12,7 @@ celery_app = Celery(
 )
 
 # MongoDB connection
-try:
-    client = MongoClient(settings.MONGO_URI)
-    db = client[settings.MONGO_DB_NAME]
-    logging.info("✅ Successfully connected to MongoDB.")
-except Exception as e:
-    logging.error(f"❌ Error connecting to MongoDB: {e}")
-    raise
+db = get_mongo_connection()
 
 # Logging configuration
 logging.basicConfig(
@@ -30,7 +24,7 @@ logging.basicConfig(
 
 @celery_app.task(queue="app_details")
 def save_categories_to_mongo(categories):
-    """Saves categories to MongoDB."""
+    """Saves categories to MongoDB only if they don't already exist."""
     if not categories:
         logging.error("❌ No categories to save. Scraping may have failed.")
         return
@@ -41,8 +35,16 @@ def save_categories_to_mongo(categories):
             logging.error("❌ No valid categories found to save.")
             return
 
-        db.categories.insert_many(formatted_categories)
-        logging.info(f"✅ {len(formatted_categories)} categories saved to MongoDB.")
+        collection = get_mongo_collection("categories")
+        inserted_count = 0
+
+        for cat in formatted_categories:
+            exists = collection.find_one({"name": cat["name"]})
+            if not exists:
+                collection.insert_one(cat)
+                inserted_count += 1
+
+        logging.info(f"✅ {inserted_count} new categories saved to MongoDB.")
     except Exception as e:
         logging.error(f"❌ Error saving categories to MongoDB: {e}")
         raise
