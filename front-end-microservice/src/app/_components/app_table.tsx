@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import {
   Card,
   CardContent,
@@ -25,6 +26,10 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { ArrowUpDown } from "lucide-react"
+import { AppFilters } from "./filters"
+import Link from "next/link"
+
+
 
 interface App {
   id: string
@@ -53,33 +58,38 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<string>("")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+  const [filters, setFilters] = useState<any>({})
 
   const totalPages = Math.ceil(totalApps / PAGE_SIZE)
 
   const fetchApps = async () => {
-    const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/apps`)
+    const baseUrl = search
+      ? `${process.env.NEXT_PUBLIC_API_URL}/apps/search`
+      : `${process.env.NEXT_PUBLIC_API_URL}/apps`
+  
+    const url = new URL(baseUrl)
     url.searchParams.set("limit", PAGE_SIZE.toString())
     url.searchParams.set("skip", ((currentPage - 1) * PAGE_SIZE).toString())
+  
     if (selectedCategory) url.searchParams.append("category", selectedCategory)
     if (listType) url.searchParams.append("list_type", listType)
     if (sortBy) url.searchParams.append("sort_by", sortBy)
     if (sortOrder) url.searchParams.append("sort_order", sortOrder)
-    if (search) {
-      url.pathname = "/apps/search"
-      url.searchParams.set("q", search)
-    }
-
+    if (search) url.searchParams.set("q", search)
+  
+    Object.entries(filters).forEach(([key, value]) => {
+        if (value !== undefined && value !== "") {
+            url.searchParams.append(key, String(value))
+        }
+    })
+    
     const res = await fetch(url.toString())
     const data = await res.json()
-
-    if (search) {
-      setApps(data)
-      setTotalApps(data.length)
-    } else {
-      setApps(data.apps)
-      setTotalApps(data.total)
-    }
+  
+    setApps(data?.apps ?? [])
+    setTotalApps(data?.total ?? 0)
   }
+  
 
   useEffect(() => {
     fetchApps()
@@ -137,7 +147,7 @@ export default function Dashboard() {
       </Pagination>
     )
   }
-
+  const router = useRouter()
   return (
     <div className="p-6 space-y-4">
       <Card>
@@ -152,6 +162,8 @@ export default function Dashboard() {
               }}
               className="max-w-sm"
             />
+
+            {/* <AppFilters filters={filters} setFilters={setFilters} /> */}
 
             <Select onValueChange={setSelectedCategory} value={selectedCategory}>
               <SelectTrigger className="w-[200px]">
@@ -175,6 +187,7 @@ export default function Dashboard() {
                 <SelectItem value="Top Paid">Top Paid</SelectItem>
               </SelectContent>
             </Select>
+            
           </div>
 
           <Table>
@@ -197,19 +210,22 @@ export default function Dashboard() {
                 <TableHead>Price</TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => toggleSort("downloads")} className="flex items-center gap-1">
-                    Downloads <ArrowUpDown size={14} />
+                    Month Download <ArrowUpDown size={14} />
                   </Button>
                 </TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => toggleSort("revenue")} className="flex items-center gap-1">
-                    Revenue <ArrowUpDown size={14} />
+                    Month Revenue<ArrowUpDown size={14} />
                   </Button>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {apps.map((app) => (
-                <TableRow key={app.id}>
+                <TableRow key={app.id}
+                  onClick={() => router.push(`/apps/${app.apple_id}`)}
+                  className="cursor-pointer hover:bg-muted"
+                >
                   <TableCell>
                     <img
                       src={app.icon_url}
