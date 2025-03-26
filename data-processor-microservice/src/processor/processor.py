@@ -107,7 +107,8 @@ def parse_estimate(value: str, is_revenue: bool = False) -> float:
     value = value.replace("$", "").replace(",", "").strip().lower()
 
     if "<" in value:
-        return 5000.0 if is_revenue else 0.0
+        return 5000.0 if is_revenue else 5000.0
+    
 
     multiplier = 1
     if value.endswith("k"):
