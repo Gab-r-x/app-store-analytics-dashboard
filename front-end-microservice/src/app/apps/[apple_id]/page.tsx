@@ -10,7 +10,8 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import ExpandableDescription from "../_components/expandable-description"
-import { Download, DollarSign, Star } from "lucide-react"
+import { Download, DollarSign, Star, ArrowLeft } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 interface AppDetail {
   id: string
@@ -28,6 +29,7 @@ interface AppDetail {
   monthly_downloads_estimate: number
   monthly_revenue_estimate: number
   url: string
+  general_info: Record<string, string>
 }
 
 function formatCompactNumber(num: number): string {
@@ -39,6 +41,23 @@ function formatCompactNumber(num: number): string {
 function getStarRating(rating: string): number {
   const match = rating.match(/\d+(\.\d+)?/)
   return match ? parseFloat(match[0]) : 0
+}
+
+function GeneralInfoCard({ info }: { info: Record<string, string> }) {
+  return (
+    <Card>
+      <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
+        {Object.entries(info).map(([key, value]) => (
+          <div key={key} className="flex flex-col">
+            <span className="text-muted-foreground text-xs uppercase tracking-wide font-medium">
+              {key}
+            </span>
+            <span className="text-sm text-foreground">{value}</span>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  )
 }
 
 export default async function AppDetailPage({ params }: { params: { apple_id: string } }) {
@@ -55,6 +74,10 @@ export default async function AppDetailPage({ params }: { params: { apple_id: st
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
+      {/* <Button variant="ghost" size="sm" onClick={() => history.back()} className="flex items-center gap-2">
+        <ArrowLeft size={16} /> Back
+      </Button> */}
+
       <div className="flex items-center gap-6">
         <img src={app.icon_url} alt={app.name} className="w-20 h-20 rounded-2xl" />
         <div>
@@ -68,7 +91,6 @@ export default async function AppDetailPage({ params }: { params: { apple_id: st
         </div>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardContent className="p-4 flex flex-col items-center">
@@ -133,12 +155,16 @@ export default async function AppDetailPage({ params }: { params: { apple_id: st
         </div>
       )}
 
-          <h2 className="text-lg font-semibold">Description</h2>
-          {app.description ? (
-            <ExpandableDescription text={app.description} />
-          ) : (
-            <p className="text-sm text-muted-foreground">No description available.</p>
-          )}
+      <div className="space-y-2">
+        <h2 className="text-lg font-semibold">Description</h2>
+        {app.description ? (
+          <ExpandableDescription text={app.description} />
+        ) : (
+          <p className="text-sm text-muted-foreground">No description available.</p>
+        )}
+      </div>
+
+      {app.general_info && <GeneralInfoCard info={app.general_info} />}
 
       {app.reviews?.length > 0 && (
         <Card>

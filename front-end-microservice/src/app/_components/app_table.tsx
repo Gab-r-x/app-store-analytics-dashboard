@@ -19,17 +19,13 @@ import {
 import {
   Pagination,
   PaginationContent,
-  PaginationEllipsis,
   PaginationItem,
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { ArrowUpDown } from "lucide-react"
-import { AppFilters } from "./filters"
-import Link from "next/link"
-
-
+import SearchHero from "./search-hero"
 
 interface App {
   id: string
@@ -46,18 +42,24 @@ interface App {
   icon_url: string
 }
 
+function formatCompactNumber(num: number): string {
+  if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
+  if (num >= 1_000) return `${(num / 1_000).toFixed(0)}K`
+  return num.toString()
+}
+
 const PAGE_SIZE = 20
 
 export default function Dashboard() {
   const [apps, setApps] = useState<App[]>([])
   const [categories, setCategories] = useState<string[]>([])
-  const [selectedCategory, setSelectedCategory] = useState("")
-  const [listType, setListType] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("Business")
+  const [listType, setListType] = useState("Top Free")
   const [search, setSearch] = useState("")
   const [totalApps, setTotalApps] = useState(0)
   const [currentPage, setCurrentPage] = useState(1)
-  const [sortBy, setSortBy] = useState<string>("")
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc")
+  const [sortBy, setSortBy] = useState<string>("rank")
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
   const [filters, setFilters] = useState<any>({})
 
   const totalPages = Math.ceil(totalApps / PAGE_SIZE)
@@ -66,30 +68,29 @@ export default function Dashboard() {
     const baseUrl = search
       ? `${process.env.NEXT_PUBLIC_API_URL}/apps/search`
       : `${process.env.NEXT_PUBLIC_API_URL}/apps`
-  
+
     const url = new URL(baseUrl)
     url.searchParams.set("limit", PAGE_SIZE.toString())
     url.searchParams.set("skip", ((currentPage - 1) * PAGE_SIZE).toString())
-  
-    if (selectedCategory) url.searchParams.append("category", selectedCategory)
-    if (listType) url.searchParams.append("list_type", listType)
-    if (sortBy) url.searchParams.append("sort_by", sortBy)
-    if (sortOrder) url.searchParams.append("sort_order", sortOrder)
+
+    url.searchParams.append("category", selectedCategory)
+    url.searchParams.append("list_type", listType)
+    url.searchParams.append("sort_by", sortBy)
+    url.searchParams.append("sort_order", sortOrder)
     if (search) url.searchParams.set("q", search)
-  
+
     Object.entries(filters).forEach(([key, value]) => {
-        if (value !== undefined && value !== "") {
-            url.searchParams.append(key, String(value))
-        }
+      if (value !== undefined && value !== "") {
+        url.searchParams.append(key, String(value))
+      }
     })
-    
+
     const res = await fetch(url.toString())
     const data = await res.json()
-  
+
     setApps(data?.apps ?? [])
     setTotalApps(data?.total ?? 0)
   }
-  
 
   useEffect(() => {
     fetchApps()
@@ -147,23 +148,23 @@ export default function Dashboard() {
       </Pagination>
     )
   }
+
   const router = useRouter()
+
   return (
-    <div className="p-6 space-y-4">
+    
+    <div className="p-6 space-y-2">
+      <SearchHero
+        onSearch={(val) => {
+            setSearch(val)
+            setCurrentPage(1)
+        }}
+        defaultValue={search}
+      />
       <Card>
         <CardContent className="p-4 flex flex-col gap-4">
           <div className="flex flex-wrap gap-2 items-center">
-            <Input
-              placeholder="Search apps or developers..."
-              value={search}
-              onChange={(e) => {
-                setCurrentPage(1)
-                setSearch(e.target.value)
-              }}
-              className="max-w-sm"
-            />
 
-            {/* <AppFilters filters={filters} setFilters={setFilters} /> */}
 
             <Select onValueChange={setSelectedCategory} value={selectedCategory}>
               <SelectTrigger className="w-[200px]">
@@ -187,7 +188,6 @@ export default function Dashboard() {
                 <SelectItem value="Top Paid">Top Paid</SelectItem>
               </SelectContent>
             </Select>
-            
           </div>
 
           <Table>
@@ -210,12 +210,12 @@ export default function Dashboard() {
                 <TableHead>Price</TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => toggleSort("downloads")} className="flex items-center gap-1">
-                    Month Download <ArrowUpDown size={14} />
+                    Downloads <ArrowUpDown size={14} />
                   </Button>
                 </TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => toggleSort("revenue")} className="flex items-center gap-1">
-                    Month Revenue<ArrowUpDown size={14} />
+                    Revenue <ArrowUpDown size={14} />
                   </Button>
                 </TableHead>
               </TableRow>
@@ -240,10 +240,10 @@ export default function Dashboard() {
                   <TableCell>{app.list_type}</TableCell>
                   <TableCell>{app.list_type === "Top Paid" ? app.price : "-"}</TableCell>
                   <TableCell className="text-right">
-                    {(app.monthly_downloads_estimate ?? 0).toLocaleString()}
+                    {formatCompactNumber(app.monthly_downloads_estimate ?? 0)}
                   </TableCell>
                   <TableCell className="text-right">
-                    {app.monthly_revenue_estimate ? `$${app.monthly_revenue_estimate.toLocaleString()}` : "-"}
+                    {app.monthly_revenue_estimate ? formatCompactNumber(app.monthly_revenue_estimate) : "-"}
                   </TableCell>
                 </TableRow>
               ))}

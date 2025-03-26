@@ -1,34 +1,29 @@
 "use client"
 
 import { useState } from "react"
-import { Button } from "@/components/ui/button"
 
 interface Props {
   text: string
-  maxParagraphs?: number
+  maxChars?: number
 }
 
-export default function ExpandableDescription({ text, maxParagraphs = 4 }: Props) {
+export default function ExpandableDescription({ text, maxChars = 400 }: Props) {
   const [expanded, setExpanded] = useState(false)
-  const paragraphs = text.split("\t")
 
-  const visibleParagraphs = expanded ? paragraphs : paragraphs.slice(0, maxParagraphs)
+  const shouldTruncate = text.length > maxChars
+  const visibleText = expanded || !shouldTruncate ? text : text.slice(0, maxChars) + "..."
 
   return (
-    <div className="space-y-3 text-sm leading-relaxed">
-      {visibleParagraphs.map((p, i) => (
-        <p key={i}>{p}</p>
-      ))}
+    <div className="text-sm leading-relaxed space-y-2">
+      <p className="whitespace-pre-line">{visibleText}</p>
 
-      {paragraphs.length > maxParagraphs && (
-        <Button
-          variant="link"
-          size="sm"
+      {shouldTruncate && (
+        <button
           onClick={() => setExpanded(!expanded)}
-          className="p-0 text-primary"
+          className="text-sm text-blue-600 hover:underline"
         >
           {expanded ? "View less" : "View more..."}
-        </Button>
+        </button>
       )}
     </div>
   )
