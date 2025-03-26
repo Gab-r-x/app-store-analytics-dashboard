@@ -182,12 +182,15 @@ List MRR / download number rate per category.
 
 ---
 
-## ✨ Future Improvements
+## ✨ Future Improvements - Still Working
 
 - Improve full text search for apps
 - In time scrape for apps without full details
 - Push new dashboard with graphs
 - Create the Cluster Analysis page
+- Add CI/CD
+- Add IaC to AWS - or another cloud provider
+- Improve tests
 
 ---
 
