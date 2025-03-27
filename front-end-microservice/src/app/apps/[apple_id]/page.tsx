@@ -10,8 +10,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import ExpandableDescription from "../_components/expandable-description"
-import { Download, DollarSign, Star, ArrowLeft } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Download, DollarSign, Star } from "lucide-react"
 
 interface AppDetail {
   id: string
@@ -60,7 +59,7 @@ function GeneralInfoCard({ info }: { info: Record<string, string> }) {
   )
 }
 
-export default async function AppDetailPage({ params }: { params: { apple_id: string } }) {
+export default async function AppDetailPage({ params, }: { params: { apple_id: string | null } }) {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/apps/${params.apple_id}`, {
     next: { revalidate: 60 }
   })
@@ -74,9 +73,6 @@ export default async function AppDetailPage({ params }: { params: { apple_id: st
 
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
-      {/* <Button variant="ghost" size="sm" onClick={() => history.back()} className="flex items-center gap-2">
-        <ArrowLeft size={16} /> Back
-      </Button> */}
 
       <div className="flex items-center gap-6">
         <img src={app.icon_url} alt={app.name} className="w-20 h-20 rounded-2xl" />

@@ -23,7 +23,7 @@ function formatCompactNumber(num: number): string {
   return num.toString()
 }
 
-export default function BarChartWithAxis({ data, title, color = "#4f46e5" }: Props) {
+export default function BarChartWithAxis({ data, color = "#4f46e5" }: Props) {
   const cleanData = data.filter(item => typeof item.downloads === "number")
 
   const maxValue = Math.max(...cleanData.map(item => item.downloads || 0))

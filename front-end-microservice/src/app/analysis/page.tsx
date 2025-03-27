@@ -1,5 +1,4 @@
 import { Suspense } from "react"
-import { Card, CardContent } from "@/components/ui/card"
 import AnalysisDashboard from "./_components/analysis-dashboard"
 
 export default function AnalysisPage() {

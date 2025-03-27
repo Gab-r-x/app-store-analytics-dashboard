@@ -6,7 +6,6 @@ import {
   Card,
   CardContent,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Button } from "@/components/ui/button"
 import {
@@ -60,7 +59,7 @@ export default function Dashboard() {
   const [currentPage, setCurrentPage] = useState(1)
   const [sortBy, setSortBy] = useState<string>("rank")
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
-  const [filters, setFilters] = useState<any>({})
+  const [filters] = useState<any>({})
 
   const totalPages = Math.ceil(totalApps / PAGE_SIZE)
 
