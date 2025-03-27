@@ -1,5 +1,5 @@
 from pymongo import MongoClient
-from dynaconf import settings
+from config import settings
 import logging
 
 def get_mongo_client():

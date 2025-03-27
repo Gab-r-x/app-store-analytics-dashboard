@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Literal
 from src.database.session import get_async_session
@@ -10,12 +10,17 @@ from src.services.app_service import (
     get_all_labels,
     search_apps
 )
+from slowapi.extension import Limiter as LimiterExtension
+
+# Rate limiter instance (already attached in main)
+limiter: LimiterExtension
 
 router = APIRouter(prefix="/apps", tags=["Apps"])
 
-
 @router.get("/", response_model=dict)
+@limiter.limit("30/minute")
 async def list_apps(
+    request: Request,
     session: AsyncSession = Depends(get_async_session),
     category: Optional[str] = Query(None),
     label: Optional[str] = Query(None),
@@ -53,12 +58,13 @@ async def list_apps(
         sort_by=sort_by,
         sort_order=sort_order
     )
-
     return {"total": total, "apps": apps}
 
 
 @router.get("/search")
+@limiter.limit("15/minute")
 async def search_apps_route(
+    request: Request,
     q: str = Query(..., min_length=2, description="Search query"),
     limit: int = Query(20, le=100),
     skip: int = Query(0),
@@ -66,8 +72,14 @@ async def search_apps_route(
 ):
     return await search_apps(session, query=q, limit=limit, skip=skip)
 
+
 @router.get("/{apple_id}", response_model=AppSchema)
-async def get_app(apple_id: str, session: AsyncSession = Depends(get_async_session)):
+@limiter.limit("60/minute")
+async def get_app(
+    request: Request,
+    apple_id: str,
+    session: AsyncSession = Depends(get_async_session)
+):
     app = await get_app_by_id(session, apple_id)
     if not app:
         raise HTTPException(status_code=404, detail="App not found")
@@ -75,11 +87,12 @@ async def get_app(apple_id: str, session: AsyncSession = Depends(get_async_sessi
 
 
 @router.get("/filters/categories", response_model=List[str])
-async def get_categories(session: AsyncSession = Depends(get_async_session)):
+@limiter.limit("20/minute")
+async def get_categories(request: Request, session: AsyncSession = Depends(get_async_session)):
     return await get_all_categories(session)
 
 
 @router.get("/filters/labels", response_model=List[str])
-async def get_labels(session: AsyncSession = Depends(get_async_session)):
+@limiter.limit("20/minute")
+async def get_labels(request: Request, session: AsyncSession = Depends(get_async_session)):
     return await get_all_labels(session)
-

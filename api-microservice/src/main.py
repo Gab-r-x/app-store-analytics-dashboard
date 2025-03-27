@@ -4,10 +4,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.routes import app_routes, analysis_routes
 from src.core.config import settings
 from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
 
 # Global logger setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+# Limiter instance
+limiter = Limiter(key_func=get_remote_address)
 
 # Lifespan hook for startup and shutdown
 @asynccontextmanager
@@ -23,6 +28,10 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan
 )
+
+# Attach rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(429, _rate_limit_exceeded_handler)
 
 # CORS middleware
 app.add_middleware(

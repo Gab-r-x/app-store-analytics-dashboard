@@ -11,7 +11,7 @@ import logging
 async def get_apps_paginated(
     session: AsyncSession,
     skip: int = 0,
-    limit: int = settings.PAGE_SIZE,
+    limit: int = 10,
     category: Optional[str] = None,
     label: Optional[str] = None,
     has_in_app_purchases: Optional[bool] = None,
