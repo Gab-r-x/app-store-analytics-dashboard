@@ -3,7 +3,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from dynaconf import settings
+from core.config import settings
 
 # Create synchronous engine (for compatibility if needed)
 sync_engine = create_engine(settings.POSTGRES_URI, echo=False)

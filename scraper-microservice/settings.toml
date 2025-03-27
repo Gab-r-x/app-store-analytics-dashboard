@@ -1,4 +1,6 @@
 [default]
+LOAD_DOTENV = true
+
 MAX_THREADS = 2
 MAX_RETRIES = 3
 TIME_BETWEEN_REQUESTS = [1, 3]  # Min e Max para random delay
@@ -11,13 +13,13 @@ USER_AGENTS = [
 ]
 
 # MongoDB Configuration
-MONGO_URI = "mongodb://mongo:27017/"
+MONGO_URI = "@env "
 MONGO_DB_NAME = "scraper_data"
 
 # Celery Configuration
-CELERY_BROKER_URL = "pyamqp://guest@rabbitmq//"
-CELERY_RESULT_BACKEND = "db+mongodb://mongo:27017/scraper_results"
+CELERY_BROKER_URL = "@env"
+CELERY_RESULT_BACKEND = "@env"
 
 # Sensor Tower Configuration
-SENSORTOWER_LOGIN = "gabrieldev.eng@gmail.com"
-SENSORTOWER_PASS = "zyz6WEnH33a9#r%"
+SENSORTOWER_LOGIN = "@env"
+SENSORTOWER_PASS = "@env"

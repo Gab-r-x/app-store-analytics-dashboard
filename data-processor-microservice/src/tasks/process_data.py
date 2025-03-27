@@ -1,18 +1,9 @@
 from celery import Celery
-from config import settings
 from processor.processor import process_apps, process_sensor_tower_metrics
+from celery_app import make_celery
 import logging
 
-# Celery configuration
-celery_app = Celery(
-    "tasks",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.CELERY_RESULT_BACKEND,
-    include=["tasks.process_data"],
-    task_serializer="pickle",
-    result_serializer="pickle",
-    accept_content=["pickle", "json"],
-)
+celery_app = make_celery()
 
 # Logging configuration
 logging.basicConfig(

@@ -2,7 +2,7 @@
 LOAD_DOTENV = true
 
 # PostgreSQL
-POSTGRES_URI = "postgresql://postgres:postgres@postgres:5432/analytics_db"
+POSTGRES_URI = "@env"
 
 # FastAPI
 PROJECT_NAME = "Analytics API"

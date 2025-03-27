@@ -1,0 +1,27 @@
+name: Deploy API to Fly.io
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "api-microservice/**"
+      - ".github/workflows/deploy-api.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    name: Deploy API service
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Fly.io
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API
+        run: |
+          cd api-microservice
+          flyctl deploy --remote-only --app hunter-api
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

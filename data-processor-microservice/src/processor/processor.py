@@ -6,7 +6,7 @@ from processor.validator import validate_app_data
 from database.models import App
 from datetime import datetime
 from sqlalchemy.dialects.postgresql import insert
-from dynaconf import settings
+from config import settings
 import logging
 
 logging.basicConfig(level=logging.INFO)

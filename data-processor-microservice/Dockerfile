@@ -4,7 +4,7 @@ FROM python:3.12-slim
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies if needed (can be extended later)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
@@ -15,6 +15,7 @@ COPY alembic.ini /app/
 COPY requirements.txt /app/
 COPY /tests/ /app/
 COPY alembic/ /app/alembic/
+COPY start.sh /app/start.sh
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip \
@@ -23,9 +24,12 @@ RUN pip install --no-cache-dir --upgrade pip \
 # Copy application code
 COPY src/ /app/src/
 
-# Set environment variables for Celery (optional defaults, can be overridden in docker-compose)
-ENV CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
-ENV CELERY_RESULT_BACKEND=db+mongodb://mongo:27017/scraper_results
+# Set execution permission for start script
+RUN chmod +x /app/start.sh
 
-# Default command (can be overridden in docker-compose)
-CMD ["python", "src/main.py"]
+# Set environment variables (can be overridden)
+ENV PYTHONPATH=/app/src
+ENV C_FORCE_ROOT=1
+
+# Run processor + worker together
+CMD ["./start.sh"]

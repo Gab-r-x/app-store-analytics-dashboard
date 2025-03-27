@@ -19,14 +19,18 @@ ENV PATH="/usr/lib/chromium/:${PATH}"
 COPY settings.toml /app/
 COPY requirements.txt .
 COPY src/ /app/src/
+COPY start.sh /app/start.sh
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Set environment variables for Celery
-ENV CELERY_BROKER_URL=pyamqp://guest@rabbitmq//
-ENV CELERY_RESULT_BACKEND=mongodb://mongo:27017/scraper_results
+# Set execution permission for start.sh
+RUN chmod +x /app/start.sh
 
-# Default command
-CMD ["celery", "-A", "src.tasks", "worker", "--loglevel=info"]
+# Set environment variables for Celery
+ENV PYTHONPATH=/app/src
+ENV C_FORCE_ROOT=1
+
+# Default command to run script and celery worker together
+CMD ["./start.sh"]

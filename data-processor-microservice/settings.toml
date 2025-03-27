@@ -1,21 +1,18 @@
-# settings.toml
-
-[default]
 LOAD_DOTENV = true
 
 # MongoDB
-MONGO_URI = "mongodb://mongo:27017"
+MONGO_URI = "@env"
 MONGO_DB_NAME = "scraper_data"
 MONGO_COLLECTION_NAME = "raw_apps"
 
 # PostgreSQL
-POSTGRES_URI = "postgresql://postgres:postgres@postgres:5432/analytics_db"
+POSTGRES_URI = "@env"
 
 # Celery
-CELERY_BROKER_URL = "pyamqp://guest@rabbitmq//"
-CELERY_RESULT_BACKEND = "db+mongodb://mongo:27017/scraper_results"
+CELERY_BROKER_URL = "@env"
+CELERY_RESULT_BACKEND = "@env"
 
-# Configurações de transformação
+# Transform config
 MAX_RETRIES = 3
 WORKER_CONCURRENCY = 4
 BATCH_SIZE = 50
