@@ -27,7 +27,7 @@ export default function AnalysisDashboard() {
   return (
     <div className="space-y-6 text-center">
       <div>
-        <h1 className="text-2xl font-bold">App Performance Analysis</h1>
+        <h1 className="text-2xl font-bold">Category Performance Analysis</h1>
         <p className="text-muted-foreground">
           Compare app categories based on total downloads, revenue, and MRR/download rate.
         </p>

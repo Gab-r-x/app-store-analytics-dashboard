@@ -7,7 +7,7 @@ import { AppWindow, Verified } from "lucide-react"
 
 const pages = [
   { name: "HOME", href: "/", icon: <AppWindow size={16} /> },
-  { name: "COMPARE APPS", href: "/apps", icon: <Verified size={16} /> },
+  { name: "COMPARE APPS", href: "/compare", icon: <Verified size={16} /> },
   { name: "CATEGORY ANALYSIS", href: "/analysis", icon: <Verified size={16} /> },
 
   // Adicione mais páginas aqui se quiser
