@@ -66,9 +66,9 @@ export default function Dashboard() {
   const fetchApps = async () => {
     const baseUrl = search
       ? `${process.env.NEXT_PUBLIC_API_URL}/apps/search`
-      : `${process.env.NEXT_PUBLIC_API_URL}/apps/`
+      : `${process.env.NEXT_PUBLIC_API_URL}/apps`
 
-    const url = new URL(baseUrl)
+    const url = new URL(baseUrl, window.location.origin)
     url.searchParams.set("limit", PAGE_SIZE.toString())
     url.searchParams.set("skip", ((currentPage - 1) * PAGE_SIZE).toString())
 
