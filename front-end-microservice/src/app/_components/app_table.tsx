@@ -66,7 +66,7 @@ export default function Dashboard() {
   const fetchApps = async () => {
     const baseUrl = search
       ? `${process.env.NEXT_PUBLIC_API_URL}/apps/search`
-      : `${process.env.NEXT_PUBLIC_API_URL}/apps`
+      : `${process.env.NEXT_PUBLIC_API_URL}/apps/`
 
     const url = new URL(baseUrl)
     url.searchParams.set("limit", PAGE_SIZE.toString())
