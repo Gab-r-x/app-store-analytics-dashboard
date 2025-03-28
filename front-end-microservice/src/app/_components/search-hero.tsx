@@ -21,7 +21,7 @@ export default function SearchHero({ onSearch, defaultValue = "" }: Props) {
     <div className="w-full flex flex-col items-center justify-center py-12 space-y-4">
       <h1 className="text-3xl font-bold text-center">Explore App Store Rankings</h1>
       <p className="text-muted-foreground text-center">
-        Find and analyze apps by category, revenue, downloads, and more
+        Find and analyze apps by category, revenue, downloads, and more...
       </p>
 
       <form
