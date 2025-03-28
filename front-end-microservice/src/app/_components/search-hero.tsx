@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Search } from "lucide-react"
 
 interface Props {
@@ -11,24 +11,37 @@ interface Props {
 
 export default function SearchHero({ onSearch, defaultValue = "" }: Props) {
   const [value, setValue] = useState(defaultValue)
+  const [debouncedValue, setDebouncedValue] = useState(defaultValue)
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSearch(value)
-  }
+  // Debounce effect: atualiza debouncedValue após 400ms sem digitar
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value)
+    }, 300)
+
+    return () => clearTimeout(timer)
+  }, [value])
+
+  // Quando debouncedValue muda, dispara a busca
+  useEffect(() => {
+    onSearch(debouncedValue)
+  }, [debouncedValue, onSearch])
 
   return (
-    <div className="w-full flex flex-col items-center justify-center py-12 space-y-4">
-      <h1 className="text-3xl font-bold text-center">Explore App Store Rankings</h1>
-      <p className="text-muted-foreground text-center">
-        Find and analyze apps by category, revenue, downloads, and more...
-      </p>
-
-      <form
-        onSubmit={handleSearch}
-        className="w-full max-w-xl mt-4 relative"
-      >
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground" size={20} />
+    <div className="w-full flex flex-col items-center justify-center mt-[-2.5rem]">
+      <div>
+        <h1 className="text-2xl font-bold text-center">
+          Explore App Store Rankings
+        </h1>
+        <p className="text-muted-foreground text-center">
+          Find and analyze apps by category, revenue, downloads, and more...
+        </p>
+      </div>
+      <div className="w-full max-w-xl mt-4 relative pt-4 pb-6">
+        <Search
+          className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+          size={20}
+        />
         <Input
           type="text"
           value={value}
@@ -36,7 +49,7 @@ export default function SearchHero({ onSearch, defaultValue = "" }: Props) {
           placeholder="Search apps or developers..."
           className="h-14 text-lg pl-12 pr-4"
         />
-      </form>
+      </div>
     </div>
   )
 }

@@ -123,15 +123,22 @@ export default function Dashboard() {
       <Pagination>
         <PaginationContent>
           <PaginationItem>
-            <PaginationLink href="#" onClick={() => setCurrentPage(1)}>&laquo;</PaginationLink>
+            <PaginationLink href="#" onClick={() => setCurrentPage(1)}>
+              &laquo;
+            </PaginationLink>
           </PaginationItem>
+
           <PaginationItem>
             <PaginationPrevious href="#" onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} />
           </PaginationItem>
 
           {pageNumbers.map(i => (
             <PaginationItem key={i}>
-              <PaginationLink href="#" isActive={i === currentPage} onClick={() => setCurrentPage(i)}>
+              <PaginationLink
+                href="#"
+                onClick={() => setCurrentPage(i)}
+                className={i === currentPage ? "bg-muted font-semibold" : ""}
+              >
                 {i}
               </PaginationLink>
             </PaginationItem>
@@ -140,11 +147,15 @@ export default function Dashboard() {
           <PaginationItem>
             <PaginationNext href="#" onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} />
           </PaginationItem>
+
           <PaginationItem>
-            <PaginationLink href="#" onClick={() => setCurrentPage(totalPages)}>&raquo;</PaginationLink>
+            <PaginationLink href="#" onClick={() => setCurrentPage(totalPages)}>
+              &raquo;
+            </PaginationLink>
           </PaginationItem>
         </PaginationContent>
       </Pagination>
+
     )
   }
 

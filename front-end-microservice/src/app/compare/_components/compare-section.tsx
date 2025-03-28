@@ -141,13 +141,13 @@ export function CompareSection() {
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto px-4 py-6">
+    <div className="space-y-8 max-w-6xl mx-auto px-4 py-0">
       {/* PARTE DE CIMA DA SECTION */}
-      <div className="text-center space-y-6">
-        <h2 className="text-4xl font-bold tracking-tight">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold tracking-tight">
           Compare Apps Side by Side
         </h2>
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+        <p className="text-muted-foreground max-w-2xl mx-auto">
           Compare key metrics between two apps to make informed decisions
         </p>
       </div>
