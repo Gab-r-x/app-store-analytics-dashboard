@@ -94,7 +94,7 @@ export default async function AppDetailPage({ params, }: { params: { apple_id: s
             <p className="text-3xl font-semibold">
               {formatCompactNumber(app.monthly_downloads_estimate ?? 0)} 
             </p>
-            <p className="text-muted-foreground text-sm">Downloads Estimate</p>
+            <p className="text-muted-foreground text-sm">Monthly Downloads Estimate</p>
           </CardContent>
         </Card>
 
