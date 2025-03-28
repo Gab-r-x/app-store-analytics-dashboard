@@ -7,4 +7,3 @@ export default async function ComparePage() {
     </div>
   )
 }
-
