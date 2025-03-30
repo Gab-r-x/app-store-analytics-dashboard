@@ -23,7 +23,7 @@ import {
   PaginationNext,
   PaginationPrevious,
 } from "@/components/ui/pagination"
-import { ArrowUpDown } from "lucide-react"
+import { ArrowUpDown, Download, DollarSign } from "lucide-react"
 import SearchHero from "./search-hero"
 
 interface App {
@@ -42,6 +42,7 @@ interface App {
 }
 
 function formatCompactNumber(num: number): string {
+  if (num <= 5000) return "< 5K"
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1)}M`
   if (num >= 1_000) return `${(num / 1_000).toFixed(0)}K`
   return num.toString()
@@ -163,7 +164,7 @@ export default function Dashboard() {
 
   return (
     
-    <div className="p-6 space-y-2">
+    <div className="pt-6 pb-6 px-2 md:px-6 space-y-2">
       <SearchHero
         onSearch={(val) => {
             setSearch(val)
@@ -203,15 +204,14 @@ export default function Dashboard() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Icon</TableHead>
                 <TableHead>
-                  <Button variant="ghost" size="sm" onClick={() => toggleSort("rank")} className="flex items-center gap-1">
-                    Rank <ArrowUpDown size={14} />
+                  <Button variant="ghost" size="sm" onClick={() => toggleSort("rank")} className="flex items-left gap-1">
+                    Rank<ArrowUpDown size={14} />
                   </Button>
                 </TableHead>
                 <TableHead>
                   <Button variant="ghost" size="sm" onClick={() => toggleSort("name")} className="flex items-center gap-1">
-                    Name <ArrowUpDown size={14} />
+                    App <ArrowUpDown size={14} />
                   </Button>
                 </TableHead>
                 <TableHead>Developer</TableHead>
@@ -231,33 +231,78 @@ export default function Dashboard() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {apps.map((app) => (
-                <TableRow key={app.id}
-                  onClick={() => router.push(`/apps/${app.apple_id}`)}
-                  className="cursor-pointer hover:bg-muted"
-                >
-                  <TableCell>
-                    <img
-                      src={app.icon_url}
-                      alt="icon"
-                      className="w-10 h-10 rounded-xl"
-                    />
-                  </TableCell>
-                  <TableCell>{app.rank ? `# ${app.rank}` : "-"}</TableCell>
-                  <TableCell>{app.name}</TableCell>
-                  <TableCell>{app.developer}</TableCell>
-                  <TableCell>{app.category}</TableCell>
-                  <TableCell>{app.list_type}</TableCell>
-                  <TableCell>{app.list_type === "Top Paid" ? app.price : "-"}</TableCell>
-                  <TableCell className="text-right">
-                    {formatCompactNumber(app.monthly_downloads_estimate ?? 0)}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {app.monthly_revenue_estimate ? formatCompactNumber(app.monthly_revenue_estimate) : "-"}
-                  </TableCell>
-                </TableRow>
-              ))}
+              {apps.map((app) => {
+                const getCategoryColor = (name: string) => {
+                  const hash = name.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)
+                  const hue = hash % 360
+                  return `hsl(${hue}deg 70% 80% / 0.9)`
+                }
+
+                return (
+                  <TableRow
+                    key={app.id}
+                    onClick={() => router.push(`/apps/${app.apple_id}`)}
+                    className="cursor-pointer hover:bg-muted"
+                  >
+                    <TableCell>{app.rank ? `# ${app.rank}` : "-"}</TableCell>
+                    
+                    <TableCell className="flex items-center gap-3">
+                      <img
+                        src={app.icon_url}
+                        alt="icon"
+                        className="w-8 h-8 rounded-md"
+                      />
+                      <span>{app.name}</span>
+                    </TableCell>
+
+                    <TableCell className="truncate max-w-[150px] overflow-hidden whitespace-nowrap">
+                      {app.developer}
+                    </TableCell>
+
+                    <TableCell>
+                      <span
+                        className="px-2 py-0.5 rounded-full text-sm"
+                        style={{ backgroundColor: getCategoryColor(app.category) }}
+                      >
+                        {app.category}
+                      </span>
+                    </TableCell>
+
+                    <TableCell>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-sm font-medium ${
+                          app.list_type === "Top Paid"
+                            ? "bg-gray-500/10 text-gray-700"
+                            : "bg-green-500/10 text-green-700"
+                        }`}
+                      >
+                        {app.list_type}
+                      </span>
+                    </TableCell>
+
+                    <TableCell>{app.list_type === "Top Paid" ? app.price : "-"}</TableCell>
+
+                    <TableCell className="text-left">
+                      <div className="flex items-center gap-1">
+                        <Download size={14} />
+                        {formatCompactNumber(app.monthly_downloads_estimate ?? 0)}
+                        
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="text-left">
+                      <div className="flex items-center gap-1">
+                        <DollarSign size={14} />
+                        {app.monthly_revenue_estimate
+                          ? formatCompactNumber(app.monthly_revenue_estimate)
+                          : "< 5K"}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
             </TableBody>
+
           </Table>
 
           {renderPagination()}
