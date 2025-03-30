@@ -10,6 +10,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel"
 import ExpandableDescription from "../_components/expandable-description"
+import ExpandableReview from "../_components/expandable-review"
 import { Download, DollarSign, Star } from "lucide-react"
 
 interface AppDetail {
@@ -79,7 +80,7 @@ export default async function AppDetailPage({ params, }: { params: { apple_id: s
         <div>
           <h1 className="text-2xl font-bold">{app.name}</h1>
           <p className="text-muted-foreground">{app.subtitle}</p>
-          <div className="flex gap-2 mt-2">
+          <div className="flex flex-wrap gap-2 mt-2">
             <Badge variant="outline">{app.category}</Badge>
             <Badge variant="secondary">{app.list_type}</Badge>
             {app.category_rank && <Badge>Rank: {app.category_rank}</Badge>}
@@ -89,19 +90,20 @@ export default async function AppDetailPage({ params, }: { params: { apple_id: s
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="p-4 flex flex-col items-center">
-            <Download className="mb-2 text-green-600" />
-            <p className="text-3xl font-semibold">
+          <CardContent className="px-2 py-1 sm:px-4 sm:py-4 flex flex-col items-center">
+            <Download className="mb-2 text-green-600 w-5 h-5 sm:w-6 sm:h-6" />
+            <p className="text-xl sm:text-3xl font-semibold">
               {formatCompactNumber(app.monthly_downloads_estimate ?? 0)} 
             </p>
-            <p className="text-muted-foreground text-sm">Monthly Downloads Estimate</p>
+            <p className="text-muted-foreground text-xs sm:text-sm text-center">Monthly Downloads Estimate</p>
           </CardContent>
         </Card>
 
+
         <Card>
-          <CardContent className="p-4 flex flex-col items-center">
-            <DollarSign className="mb-2 text-green-600" />
-            <p className="text-3xl font-semibold">
+          <CardContent className="px-2 py-1 sm:px-4 sm:py-4 flex flex-col items-center">
+            <DollarSign className="mb-2 text-green-600 w-5 h-5 sm:w-6 sm:h-6" />
+            <p className="text-xl sm:text-3xl font-semibold">
               {app.monthly_revenue_estimate
                 ? formatCompactNumber(app.monthly_revenue_estimate)
                 : "-"}
@@ -111,7 +113,7 @@ export default async function AppDetailPage({ params, }: { params: { apple_id: s
         </Card>
 
         <Card>
-          <CardContent className="p-4 flex flex-col items-center">
+          <CardContent className="px-2 py-1 sm:px-4 sm:py-4 flex flex-col items-center">
             <div className="flex gap-1 mb-2">
               {[...Array(5)].map((_, i) => (
                 <Star
@@ -122,7 +124,7 @@ export default async function AppDetailPage({ params, }: { params: { apple_id: s
                 />
               ))}
             </div>
-            <p className="text-3xl font-semibold">{rating}/5</p>
+            <p className="text-xl sm:text-3xl font-semibold">{rating}/5</p>
             <p className="text-muted-foreground text-sm">{app.rating_summary}</p>
           </CardContent>
         </Card>
@@ -162,20 +164,50 @@ export default async function AppDetailPage({ params, }: { params: { apple_id: s
 
       {app.general_info && <GeneralInfoCard info={app.general_info} />}
 
-      {app.reviews?.length > 0 && (
-        <Card>
-          <CardContent className="p-4 space-y-4">
-            <h2 className="text-lg font-semibold">Reviews</h2>
-            {app.reviews.slice(0, 5).map((review, i) => (
-              <div key={i} className="border-b pb-2">
+      {app.reviews.slice(0, 5).map((review, i) => {
+        const initials = review.author
+          ? review.author
+              .split(" ")
+              .map((word: string) => word[0])
+              .join("")
+              .toUpperCase()
+          : "?"
+
+        const rating = (() => {
+          const match = review.rating?.match(/\d+(\.\d+)?/)
+          return match ? parseFloat(match[0]) : 0
+        })()
+
+
+        return (
+          <div key={i} className="border-b pb-4 flex gap-4">
+            <div className="flex-shrink-0 w-10 h-10 rounded-full bg-muted flex items-center justify-center text-sm font-medium text-foreground">
+              {initials}
+            </div>
+
+            <div className="flex-1 space-y-1">
+              <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold">{review.title}</p>
-                <p className="text-xs text-muted-foreground">{review.author} - {review.date}</p>
-                <p className="text-sm mt-1">{review.body}</p>
+                <div className="flex gap-0.5">
+                  {[...Array(5)].map((_, j) => (
+                    <Star
+                      key={j}
+                      size={14}
+                      fill={j < rating ? "#facc15" : "none"}
+                      stroke="#facc15"
+                    />
+                  ))}
+                </div>
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              <p className="text-xs text-muted-foreground">
+                {review.author} - {review.date}
+              </p>
+              <ExpandableReview text={review.body} />
+            </div>
+          </div>
+        )
+      })}
+
     </div>
   )
 }
