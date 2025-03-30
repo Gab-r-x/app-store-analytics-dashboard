@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional, Literal
+
 from src.database.session import get_async_session
 from src.schemas.app_schema import AppSchema
 from src.services.app_service import (
@@ -10,15 +11,12 @@ from src.services.app_service import (
     get_all_labels,
     search_apps
 )
-from slowapi.extension import Limiter as LimiterExtension
+from src.core.limiter import limiter
 
-# Rate limiter instance (already attached in main)
-limiter: LimiterExtension
+router = APIRouter(prefix="/apps", tags=["Apps"], include_in_schema=True)
 
-router = APIRouter(prefix="/apps", tags=["Apps"])
-
-@router.get("/", response_model=dict)
-@limiter.limit("30/minute")
+@router.get("", response_model=dict)
+# @limiter.limit("30/minute")
 async def list_apps(
     request: Request,
     session: AsyncSession = Depends(get_async_session),

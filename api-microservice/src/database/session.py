@@ -7,33 +7,36 @@ from src.core.config import settings
 
 Base = declarative_base()
 
-# (Opcional) Engine síncrono, só se for realmente necessário em alguma parte do código:
+# Optional synchronous engine (only if needed somewhere in the code)
 sync_engine = create_engine(settings.POSTGRES_URI, echo=False)
 
-# Monta a URI para o dialeto async do psycopg,
-# adicionando sslmode=disable ao final (caso queira desabilitar SSL).
-# Se preferir habilitar, mude para "?sslmode=require" ou similar.
+# Build the async URI for psycopg, adding sslmode=disable
+# If you want SSL enabled, replace with "?sslmode=require" or similar
 DATABASE_URL_PSY = (
     settings.POSTGRES_URI
     .replace("postgresql://", "postgresql+psycopg://")
     + "?sslmode=disable"
 )
 
-# Cria o engine assíncrono com psycopg
+# Create the async engine with connection pooling and stability options
 async_engine = create_async_engine(
     DATABASE_URL_PSY,
     echo=False,
-    connect_args={"ssl": None},  # ou ssl=False, se quiser garantir desativação do SSL
+    connect_args={"ssl": None},  # or ssl=False to explicitly disable SSL
+    pool_pre_ping=True,          # checks connection before using it
+    pool_recycle=1800,           # recycles connections every 30 minutes
+    pool_size=10,                # max number of connections in the pool
+    max_overflow=20,             # extra connections if pool is full
 )
 
-# Cria a factory de sessões assíncronas
+# Create the async session factory
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
 )
 
-# Dependency para injetar a sessão nos endpoints FastAPI
+# Dependency to inject session into FastAPI routes
 async def get_async_session():
     async with AsyncSessionLocal() as session:
         yield session

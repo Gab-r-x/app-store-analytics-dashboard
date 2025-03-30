@@ -1,23 +1,24 @@
 import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
+
 from src.routes import app_routes, analysis_routes
 from src.core.config import settings
-from contextlib import asynccontextmanager
-from slowapi import Limiter, _rate_limit_exceeded_handler
-from slowapi.util import get_remote_address
+from src.core.limiter import limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from slowapi import _rate_limit_exceeded_handler  # correto para versões atuais
 
 # Global logger setup
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Limiter instance
-limiter = Limiter(key_func=get_remote_address)
-
 # Lifespan hook for startup and shutdown
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("🚀 API is starting up...")
+    logger.info(f"✅ ALLOWED_ORIGINS: {settings.ALLOWED_ORIGINS} ({type(settings.ALLOWED_ORIGINS)})")
     yield
     logger.info("🛑 API is shutting down...")
 
@@ -26,27 +27,29 @@ app = FastAPI(
     title=settings.PROJECT_NAME,
     description=settings.PROJECT_DESCRIPTION,
     version="1.0.0",
-    lifespan=lifespan
+    lifespan=lifespan,
+    redirect_slashes=False
 )
 
-# Attach rate limiter
-app.state.limiter = limiter
-app.add_exception_handler(429, _rate_limit_exceeded_handler)
-
-# CORS middleware
+# ✅ CORS middleware deve vir primeiro
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register routers
+# Rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
+
+# Routers
 app.include_router(app_routes.router)
 app.include_router(analysis_routes.router)
 
-# Health check route
+# Health check
 @app.get("/")
 async def root():
     return {"message": "📡 App Analytics API is up and running"}

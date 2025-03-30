@@ -1,6 +1,6 @@
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import and_, func, text, Float, cast
+from sqlalchemy import and_, func, text, Float, cast, desc
 from src.models.app_model import App
 from fastapi import HTTPException
 from typing import List, Optional, Tuple
@@ -56,7 +56,7 @@ async def get_apps_paginated(
         filters.append(App.list_type == list_type)
 
     # Count total apps for pagination
-    count_stmt = select(func.count()).select_from(App).where(and_(*filters))
+    count_stmt = select(func.count(App.id)).where(and_(*filters))
     total_result = await session.execute(count_stmt)
     total = total_result.scalar()
 
@@ -109,10 +109,12 @@ async def get_all_labels(session: AsyncSession) -> List[str]:
 
 async def search_apps(session: AsyncSession, query: str, limit: int = 20, skip: int = 0):
     ts_query = func.websearch_to_tsquery("english", query)
+    rank = func.ts_rank(App.search_vector, ts_query).label("rank")
 
     stmt = (
         select(App)
         .where(App.search_vector.op("@@")(ts_query))
+        .order_by(desc(rank))
         .offset(skip)
         .limit(limit)
     )
