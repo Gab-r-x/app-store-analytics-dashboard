@@ -5,19 +5,21 @@ from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 import asyncio
 import logging
-import openai
 import json
+import re
 from config import settings
+from openai import AsyncOpenAI
 
 celery_app = make_celery()
-openai.api_key = settings.OPENAI_API_KEY
+client = AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 logger = logging.getLogger(__name__)
 
 BATCH_SIZE = 10
 SLEEP_BETWEEN_BATCHES = 2  # seconds
 
-async def fetch_unlabeled_apps(session: AsyncSession, limit: int = 50):
+
+async def fetch_unlabeled_apps(session: AsyncSession, limit: int = 3000):
     logger.info(f"🔍 Fetching up to {limit} unlabeled apps from database...")
     try:
         stmt = select(App).where(App.labels == None).limit(limit)
@@ -29,35 +31,52 @@ async def fetch_unlabeled_apps(session: AsyncSession, limit: int = 50):
         logger.error(f"❌ Failed to fetch unlabeled apps: {e}")
         return []
 
+
 def build_prompt(app: App) -> str:
     return (
         f"App Name: {app.name}\n"
         f"Subtitle: {app.subtitle}\n"
         f"Description: {app.description}\n"
-        f"Category: {app.category}\n"
-        "\nBased on the information above, generate 5 descriptive labels (keywords or categories) for this app. "
-        "Do NOT repeat the category as a label. "
-        "Return the labels as a JSON array of strings."
+        f"Category: {app.category}\n\n"
+        "Based on the information above, generate exactly 5 descriptive labels (keywords or categories) for this app. "
+        "Do NOT repeat the category as a label.\n\n"
+        "Important: Return ONLY a valid JSON array of strings with 5 elements, no explanations or markdown.\n"
+        "Example: [\"label one\", \"label two\", \"label three\", \"label four\", \"label five\"]"
     )
+
+
+def extract_json_array(text: str) -> list[str] | None:
+    """Extract and parse the first JSON array found in the text."""
+    try:
+        match = re.search(r"\[[^\[\]]+\]", text, re.DOTALL)
+        if match:
+            array = json.loads(match.group(0))
+            if isinstance(array, list) and all(isinstance(i, str) for i in array):
+                return array
+    except Exception as e:
+        logger.warning(f"⚠️ JSON extraction failed: {e}")
+    return None
+
 
 async def generate_label_for_app(app: App) -> list[str]:
     prompt = build_prompt(app)
     try:
         logger.info(f"🤖 Generating labels for app {app.id} - '{app.name}'")
-        response = await openai.ChatCompletion.acreate(
+        response = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
         )
-        content = response.choices[0].message.content
-        labels = json.loads(content)
-        logger.info(f"✅ Labels generated for app {app.id}: {labels}")
-        return labels
-    except json.JSONDecodeError:
-        logger.warning(f"⚠️ Failed to parse JSON for app {app.id}: {content}")
-        return []
+        content = response.choices[0].message.content.strip()
+        labels = extract_json_array(content)
+        if labels:
+            logger.info(f"✅ Labels generated for app {app.id}: {labels}")
+            return labels
+        else:
+            raise ValueError("No valid JSON array found in response.")
     except Exception as e:
-        logger.error(f"❌ OpenAI error for app {app.id}: {e}")
+        logger.warning(f"⚠️ Failed to generate labels for app {app.id}: {e}")
         return []
+
 
 @celery_app.task(name="tasks.generate_labels.generate_app_labels", queue="data_processor")
 def generate_app_labels():
