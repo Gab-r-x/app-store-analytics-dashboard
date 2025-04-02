@@ -7,7 +7,7 @@ def make_celery():
         "tasks",
         broker=settings.CELERY_BROKER_URL,
         backend=settings.CELERY_RESULT_BACKEND,
-        include=["tasks.process_data"],
+        include=["tasks.process_data", "tasks.generate_labels"],
         task_serializer="pickle",
         result_serializer="pickle",
         accept_content=["pickle", "json"],

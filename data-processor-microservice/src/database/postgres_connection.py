@@ -1,49 +1,53 @@
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from config import settings
-import logging
 
+# Base class for ORM models
 Base = declarative_base()
 
-# Build the sync session for the data processor 
+# ---------- Synchronous engine (used in cases like Alembic migrations) ----------
+
 def get_postgres_session():
+    """Create a synchronous SQLAlchemy session (if needed for sync operations)."""
     try:
         engine = create_engine(settings.POSTGRES_URI)
         Session = sessionmaker(bind=engine)
-        logging.info("✅ Connected to PostgreSQL.")
+        logging.info("✅ Connected to PostgreSQL (sync engine).")
         return engine, Session()
     except Exception as e:
         logging.error(f"❌ Failed to connect to PostgreSQL: {e}")
         raise
 
-# Build the async URI for psycopg, adding sslmode=disable
-# If you want SSL enabled, replace with "?sslmode=require" or similar
+# ---------- Asynchronous engine (used in most operations) ----------
+
+# Transform sync URI to async URI (for psycopg + asyncpg compatibility)
 DATABASE_URL_PSY = (
     settings.POSTGRES_URI
-    .replace("postgresql://", "postgresql+psycopg://")
+    .replace("postgresql+psycopg2://", "postgresql+psycopg://")  # ensure correct replacement
     + "?sslmode=disable"
 )
 
-# Create the async engine with connection pooling and stability options
+# Create async engine with robust pooling config
 async_engine = create_async_engine(
     DATABASE_URL_PSY,
     echo=False,
-    connect_args={"ssl": None},  # or ssl=False to explicitly disable SSL
-    pool_pre_ping=True,          # checks connection before using it
-    pool_recycle=1800,           # recycles connections every 30 minutes
-    pool_size=10,                # max number of connections in the pool
-    max_overflow=20,             # extra connections if pool is full
+    connect_args={"ssl": None},
+    pool_pre_ping=True,
+    pool_recycle=1800,
+    pool_size=10,
+    max_overflow=20,
 )
 
-# Create the async session factory
+# Factory for async sessions
 AsyncSessionLocal = sessionmaker(
     bind=async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
 )
 
-# Dependency to inject session
+# Dependency-style async session getter
 async def get_async_session():
     async with AsyncSessionLocal() as session:
         yield session

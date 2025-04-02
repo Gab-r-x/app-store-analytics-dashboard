@@ -1,4 +1,3 @@
-from celery import Celery
 from processor.processor import process_apps, process_sensor_tower_metrics
 from celery_app import make_celery
 import logging
