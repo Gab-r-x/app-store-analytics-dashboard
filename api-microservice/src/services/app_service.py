@@ -27,7 +27,7 @@ async def get_apps_paginated(
     sort_by: Optional[str] = None,
     sort_order: Optional[str] = "desc",
 ) -> Tuple[int, List[AppSchema]]:
-    filters = []
+    filters = [App.active == True]
 
     if category:
         filters.append(App.category == category)

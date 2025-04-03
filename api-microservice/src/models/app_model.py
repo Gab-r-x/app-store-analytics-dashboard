@@ -1,5 +1,3 @@
-# src/models/app_model.py
-
 import uuid
 from datetime import date, datetime
 from sqlalchemy import Column, String, Integer, Boolean, Float, Date, DateTime, JSON

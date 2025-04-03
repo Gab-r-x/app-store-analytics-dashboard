@@ -6,6 +6,7 @@ from src.services.analysis_service import (
     get_total_downloads_per_category,
     get_total_revenue_per_category,
     get_mrr_per_download_per_category,
+    get_cluster_points,
 )
 from src.core.limiter import limiter
 
@@ -34,3 +35,11 @@ async def analysis_mrr_per_download(
     request: Request, session: AsyncSession = Depends(get_async_session)
 ):
     return await get_mrr_per_download_per_category(session)
+
+
+@router.get("/clusters")
+@limiter.limit("10/minute")
+async def analysis_clusters(
+    request: Request, session: AsyncSession = Depends(get_async_session)
+):
+    return await get_cluster_points(session)
