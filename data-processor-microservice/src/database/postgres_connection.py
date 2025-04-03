@@ -48,6 +48,7 @@ AsyncSessionLocal = sessionmaker(
 )
 
 # Dependency-style async session getter
+# - Creates an async session; `yield` pauses the context manager at __aenter__ and resumes for __aexit__
 async def get_async_session():
     async with AsyncSessionLocal() as session:
         yield session

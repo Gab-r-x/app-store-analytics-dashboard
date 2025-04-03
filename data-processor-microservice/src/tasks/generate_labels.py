@@ -19,7 +19,7 @@ BATCH_SIZE = 10
 SLEEP_BETWEEN_BATCHES = 2  # seconds
 
 
-async def fetch_unlabeled_apps(session: AsyncSession, limit: int = 3000):
+async def fetch_unlabeled_apps(session: AsyncSession, limit: int = 50):
     logger.info(f"🔍 Fetching up to {limit} unlabeled apps from database...")
     try:
         stmt = select(App).where(App.labels == None).limit(limit)

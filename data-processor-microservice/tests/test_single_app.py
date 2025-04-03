@@ -1,11 +1,11 @@
 import logging
 from datetime import datetime
 from pymongo import MongoClient
-from database.postgres_connection import get_postgres_session
-from processor.normalize import normalize_app_data
-from processor.transform import transform_app_data
-from processor.validator import validate_app_data
-from database.models import App
+from src.database.postgres_connection import get_postgres_session
+from src.processor.normalize import normalize_app_data
+from src.processor.transform import transform_app_data
+from src.processor.validator import validate_app_data
+from src.database.models import App
 from sqlalchemy.dialects.postgresql import insert
 
 logging.basicConfig(level=logging.INFO)

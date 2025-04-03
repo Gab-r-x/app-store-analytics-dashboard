@@ -9,7 +9,7 @@ def make_celery():
         backend=settings.CELERY_RESULT_BACKEND,
         include=["tasks.process_data", 
                  "tasks.generate_labels", 
-                 "tasks.cluster_analysis_task"],
+                 "tasks.cluster_analysis"],
         task_serializer="pickle",
         result_serializer="pickle",
         accept_content=["pickle", "json"],
