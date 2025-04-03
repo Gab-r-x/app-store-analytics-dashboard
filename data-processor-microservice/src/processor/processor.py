@@ -42,6 +42,10 @@ def process_apps():
         batch = raw_apps[i:i + BATCH_SIZE]
         logger.info(f"⚙️ Processing batch {i // BATCH_SIZE + 1} of {len(raw_apps) // BATCH_SIZE + 1}")
 
+        batch_apple_ids = []
+        category = None
+        list_type = None
+
         for raw_app in batch:
             try:
                 url = raw_app.get("url")
@@ -66,6 +70,11 @@ def process_apps():
                     continue
 
                 seen_apple_ids.add(transformed["apple_id"])
+                batch_apple_ids.append(transformed["apple_id"])
+
+                if not category:
+                    category = transformed.get("category")
+                    list_type = transformed.get("list_type")
 
                 stmt = insert(App).values(**transformed)
                 update_dict = transformed.copy()
@@ -86,7 +95,16 @@ def process_apps():
                 session.rollback()
                 skipped_count += 1
 
-    logger.info("🧹 Deactivating apps not seen in this round...")
+        # Deactivate old apps from the category
+        if category and list_type and batch_apple_ids:
+            session.query(App).filter(
+                App.category == category,
+                App.list_type == list_type,
+                App.apple_id.notin_(batch_apple_ids),
+                App.active == True
+            ).update({"active": False}, synchronize_session=False)
+
+    logger.info("🪟 Deactivating apps not seen in this round...")
     deactivated_count = 0
     if seen_apple_ids:
         deactivated_count = session.query(App).filter(~App.apple_id.in_(seen_apple_ids)).count()
@@ -98,7 +116,6 @@ def process_apps():
     session.close()
     logger.info(f"🏁 Processing complete. Processed: {processed_count}, Skipped: {skipped_count}, Deactivated: {deactivated_count}")
 
-
 def parse_estimate(value: str, is_revenue: bool = False) -> float:
     """Converts estimates like '80K', '$2M', '< $5k' into float values."""
     if not value:
@@ -108,7 +125,6 @@ def parse_estimate(value: str, is_revenue: bool = False) -> float:
 
     if "<" in value:
         return 5000.0 if is_revenue else 5000.0
-    
 
     multiplier = 1
     if value.endswith("k"):

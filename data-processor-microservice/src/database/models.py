@@ -1,6 +1,7 @@
-from sqlalchemy import Column, String, Integer, Float, Text, Date, JSON, ARRAY, Boolean
+from sqlalchemy import Column, String, Integer, Float, Text, Date, JSON, ARRAY, Boolean, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship
 import uuid
 from datetime import datetime
 
@@ -62,3 +63,19 @@ class App(Base):
 
     def __repr__(self):
         return f"<App(name={self.name}, developer={self.developer}, rank={self.rank})>"
+
+class AppCluster(Base):
+    __tablename__ = "app_clusters"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    app_id = Column(UUID(as_uuid=True), ForeignKey("apps.id", ondelete="CASCADE"), nullable=False, unique=True)
+
+    cluster = Column(Integer, nullable=False)
+    # Reduced 2D coord.
+    x = Column(Float, nullable=False)
+    y = Column(Float, nullable=False)
+
+    downloads = Column(Float, nullable=True)
+    revenue = Column(Float, nullable=True)
+
+    app = relationship("App", backref="cluster_data")

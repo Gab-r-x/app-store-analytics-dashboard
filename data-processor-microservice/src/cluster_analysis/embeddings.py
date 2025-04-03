@@ -4,20 +4,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from database.models import App
 from database.postgres_connection import AsyncSessionLocal
 from config import settings
-import openai
+from openai import OpenAI
 
-openai.api_key = settings.OPENAI_API_KEY
 logger = logging.getLogger(__name__)
 
 EMBEDDING_MODEL = "text-embedding-ada-002"
+openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
 
 def build_input_text(app: App) -> str:
-    """Concatena informações relevantes para gerar um embedding significativo."""
     labels = ", ".join(app.labels or [])
     return f"{app.name or ''}. {app.subtitle or ''}. {app.description or ''}. Labels: {labels}"
 
 async def fetch_apps_to_embed(session: AsyncSession, limit: int = 50):
-    """Busca apps com labels e sem embedding ainda."""
     stmt = select(App).where(App.labels != None).limit(limit)
     result = await session.execute(stmt)
     return result.scalars().all()
@@ -25,12 +23,11 @@ async def fetch_apps_to_embed(session: AsyncSession, limit: int = 50):
 async def generate_embedding_for_app(app: App) -> list[float] | None:
     try:
         input_text = build_input_text(app)
-        response = await openai.Embedding.acreate(
+        response = openai_client.embeddings.create(
             input=input_text,
             model=EMBEDDING_MODEL,
         )
-        embedding = response.data[0].embedding
-        return embedding
+        return response.data[0].embedding
     except Exception as e:
         logger.warning(f"❌ Failed to generate embedding for {app.id}: {e}")
         return None

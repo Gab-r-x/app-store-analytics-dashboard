@@ -16,8 +16,9 @@ def run_data_processing():
     """Celery task to run full app data processing pipeline."""
     logging.info("🚀 Starting task: run_data_processing")
     process_apps()
+    logging.info("✅ Finished processing apps. Triggering label generation...")
+    celery_app.send_task("tasks.generate_labels.generate_app_labels", queue="data_processor")
     logging.info("🏁 Task finished: run_data_processing")
-
 
 @celery_app.task(name="tasks.process_data.run_sensor_metrics_processing", queue="data_processor")
 def run_sensor_metrics_processing():
