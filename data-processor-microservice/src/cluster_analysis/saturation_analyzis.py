@@ -25,6 +25,9 @@ def run_saturation_analysis(n_clusters: int = 50, plot: bool = True):
     # Cluster the embeddings
     cluster_ids, model = cluster_embeddings(embeddings, n_clusters=n_clusters)
 
+    # Convert cluster_ids to list of ints for Counter to work
+    cluster_ids = list(map(int, cluster_ids))
+
     # Count saturation per cluster
     saturation_count = Counter(cluster_ids)
     logger.info("📈 Cluster saturation:")
@@ -34,7 +37,7 @@ def run_saturation_analysis(n_clusters: int = 50, plot: bool = True):
     # Reduce dimensionality to 2D for visualization and DB persistence
     reduced = reduce_embeddings_dimensionality(embeddings)
 
-    # Deactivated to save cpu and memory for now
+    # Optional plotting (disabled to save memory/CPU)
     # if plot:
     #     plot_clusters(reduced, cluster_ids)
 
@@ -43,7 +46,7 @@ def run_saturation_analysis(n_clusters: int = 50, plot: bool = True):
     for app_id, cluster_id, coords in zip(ids, cluster_ids, reduced):
         cluster_data.append({
             "app_id": app_id,
-            "cluster": int(cluster_id),
+            "cluster": cluster_id,
             "x": float(coords[0]),
             "y": float(coords[1])
         })
