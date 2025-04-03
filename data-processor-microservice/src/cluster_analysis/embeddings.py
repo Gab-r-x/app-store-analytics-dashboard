@@ -15,7 +15,7 @@ def build_input_text(app: App) -> str:
     labels = ", ".join(app.labels or [])
     return f"{app.name or ''}. {app.subtitle or ''}. {app.description or ''}. Labels: {labels}"
 
-async def fetch_apps_to_embed(session: AsyncSession, limit: int = 50):
+async def fetch_apps_to_embed(session: AsyncSession, limit: int = 500):
     stmt = select(App).where(App.labels != None).limit(limit)
     result = await session.execute(stmt)
     return result.scalars().all()

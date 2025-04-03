@@ -8,7 +8,7 @@ from database.postgres_connection import AsyncSessionLocal
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-def run_saturation_analysis(n_clusters: int = 8, plot: bool = True):
+def run_saturation_analysis(n_clusters: int = 50, plot: bool = True):
     logger.info("🔍 Starting saturation analysis pipeline...")
 
     import asyncio
@@ -34,8 +34,9 @@ def run_saturation_analysis(n_clusters: int = 8, plot: bool = True):
     # Reduce dimensionality to 2D for visualization and DB persistence
     reduced = reduce_embeddings_dimensionality(embeddings)
 
-    if plot:
-        plot_clusters(reduced, cluster_ids)
+    # Deactivated to save cpu and memory for now
+    # if plot:
+    #     plot_clusters(reduced, cluster_ids)
 
     # Prepare data for DB
     cluster_data = []

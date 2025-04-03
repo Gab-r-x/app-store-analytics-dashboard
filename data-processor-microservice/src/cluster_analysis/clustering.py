@@ -14,7 +14,7 @@ def reduce_embeddings_dimensionality(embeddings: list[list[float]], n_components
     logger.info("✅ PCA reduction complete.")
     return reduced
 
-def cluster_embeddings(embeddings: list[list[float]], n_clusters: int = 8):
+def cluster_embeddings(embeddings: list[list[float]], n_clusters: int = 50):
     """Aplica KMeans clustering nos embeddings."""
     logger.info(f"🔍 Clustering {len(embeddings)} embeddings into {n_clusters} clusters...")
     kmeans = KMeans(n_clusters=n_clusters, random_state=42)
