@@ -24,14 +24,12 @@ interface Props {
   data: ClusterPoint[]
 }
 
-// Utilitário para formatar números
 function formatCompactNumber(num: number): string {
   if (num >= 1_000_000) return `${(num / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`
   if (num >= 1_000) return `${(num / 1_000).toFixed(1).replace(/\.0$/, "")}K`
   return num.toString()
 }
 
-// Agrupador por categoria
 function groupByCategory(data: ClusterPoint[]): ClusterPoint[] {
   const grouped: Record<string, {
     category: string
@@ -57,7 +55,7 @@ function groupByCategory(data: ClusterPoint[]): ClusterPoint[] {
 
   return Object.values(grouped).map(item => ({
     category: item.category,
-    cluster: 0, // opcional, não necessário mais
+    cluster: 0,
     app_count: item.app_count,
     avg_downloads: item.totalDownloads / item.app_count,
     avg_revenue: item.totalRevenue / item.app_count
